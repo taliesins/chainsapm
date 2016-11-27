@@ -214,7 +214,7 @@ public:
 
 	~COMPtrHolder()
 	{
-		if (m_ptr != NULL)
+		if (m_ptr != nullptr)
 		{
 			m_ptr->Release();
 			m_ptr = NULL;
@@ -419,7 +419,7 @@ public:
 	static std::map<UINT_PTR, Cprofilermain*> * g_StaticContainerClass;
 	static CRITICAL_SECTION g_StaticContainerClassCritSec;
 
-	NetworkClient *m_NetworkClient = NULL;
+	NetworkClient *m_NetworkClient = nullptr;
 
 	/************************************************************************************
 	!!!NOTE!!!!
@@ -555,12 +555,12 @@ tp_helper::tp_helper(Cprofilermain * cpmain, int min, int max)
 	tp_helper::m_cprof = cpmain;
 	m_ptpcbe = new TP_CALLBACK_ENVIRON();
 	InitializeThreadpoolEnvironment(m_ptpcbe);
-	m_customThreadPool = CreateThreadpool(NULL);
+	m_customThreadPool = CreateThreadpool(nullptr);
 	SetThreadpoolThreadMinimum(m_customThreadPool, min);
 	SetThreadpoolThreadMaximum(m_customThreadPool, max);
 	m_ptpcug = CreateThreadpoolCleanupGroup();
 	SetThreadpoolCallbackPool(m_ptpcbe, m_customThreadPool);
-	SetThreadpoolCallbackCleanupGroup(m_ptpcbe, m_ptpcug, NULL);
+	SetThreadpoolCallbackCleanupGroup(m_ptpcbe, m_ptpcug, nullptr);
 }
 
 

@@ -7,7 +7,6 @@ namespace Commands{
 	{
 	}
 
-
 	ClassDefinition::~ClassDefinition()
 	{
 	}

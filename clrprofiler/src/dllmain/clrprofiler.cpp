@@ -6,7 +6,6 @@
 #include "dllmain.h"
 #include "xdlldata.h"
 
-
 using namespace ATL;
 
 // Used to determine whether the DLL can be unloaded by OLE.
@@ -35,7 +34,7 @@ STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID
 STDAPI DllRegisterServer(void)
 {
 	// registers object, typelib and all interfaces in typelib
-	HRESULT hr = _AtlModule.DllRegisterServer();
+	auto hr = _AtlModule.DllRegisterServer();
 	#ifdef _MERGE_PROXYSTUB
 	if (FAILED(hr))
 		return hr;
@@ -47,7 +46,7 @@ STDAPI DllRegisterServer(void)
 // DllUnregisterServer - Removes entries from the system registry.
 STDAPI DllUnregisterServer(void)
 {
-	HRESULT hr = _AtlModule.DllUnregisterServer();
+	auto hr = _AtlModule.DllUnregisterServer();
 	#ifdef _MERGE_PROXYSTUB
 	if (FAILED(hr))
 		return hr;
@@ -62,10 +61,10 @@ STDAPI DllUnregisterServer(void)
 // DllInstall - Adds/Removes entries to the system registry per user per machine.
 STDAPI DllInstall(BOOL bInstall, _In_opt_  LPCWSTR pszCmdLine)
 {
-	HRESULT hr = E_FAIL;
+	auto hr = E_FAIL;
 	static const wchar_t szUserSwitch[] = L"user";
 
-	if (pszCmdLine != NULL)
+	if (pszCmdLine != nullptr)
 	{
 		if (_wcsnicmp(pszCmdLine, szUserSwitch, _countof(szUserSwitch)) == 0)
 		{

@@ -7,7 +7,6 @@ namespace Commands
 	{
 	}
 
-
 	GetString::~GetString()
 	{
 	}

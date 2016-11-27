@@ -6,7 +6,6 @@ namespace Commands {
 	{
 	}
 
-
 	SendPackedStructure::~SendPackedStructure()
 	{
 	}
@@ -23,16 +22,14 @@ namespace Commands {
 
 	std::shared_ptr<std::vector<char>> SendPackedStructure::Encode()
 	{
-
-
 		if (!hasEncoded)
 		{
 #pragma warning(suppress : 4267) // I'm only sending max 4k of data in one command however, the length() prop is __int64. This is valid.
 			
 			hasEncoded = true;
-			char* thisptr = (char*)m_data;
+			auto thisptr = static_cast<char*>(m_data);
 			std::vector<char> vecc;
-			auto size = *(int*)thisptr; // grab the first 4 bytes
+			auto size = *reinterpret_cast<int*>(thisptr); // grab the first 4 bytes
 			vecc.assign(thisptr, thisptr+size);
 			m_internalvector = std::make_shared <std::vector<char>>(vecc);
 		}

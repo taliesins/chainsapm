@@ -28,7 +28,7 @@ namespace Commands
 	{
 		if (!hasEncoded)
 		{
-			size_t size = sizeof(__int32)	// len
+			auto size = sizeof(__int32)	// len
 				+ sizeof(short)				// code
 				+ sizeof(__int64)			// timstamp
 				+ sizeof(__int64)			// functionid
@@ -38,7 +38,7 @@ namespace Commands
 			auto vector = new char[size];
 
 			short term = 0;
-			auto v2 = (char*)memcpy(vector, &size, sizeof(__int32));
+			auto v2 = static_cast<char*>(memcpy(vector, &size, sizeof(__int32)));
 			v2 += sizeof(__int32);
 			memcpy(v2 , &code, sizeof(short));
 			v2 += sizeof(short);

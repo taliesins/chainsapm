@@ -1,7 +1,6 @@
 #pragma once
 #include "../../metadatastaticlib/inc/commonstructures.h"
 
-
 class IStackItem
 {
 public:
@@ -112,6 +111,4 @@ public:
 private:
 	COR_PRF_GC_REASON m_GCReason;
 	int m_MaxGenerationsCollected;
-
 };
-

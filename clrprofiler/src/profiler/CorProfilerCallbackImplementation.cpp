@@ -26,7 +26,6 @@ HRESULT STDMETHODCALLTYPE CorProfilerCallbackImplementation::Initialize(IUnknown
 
 HRESULT STDMETHODCALLTYPE CorProfilerCallbackImplementation::Shutdown(void)
 {
-
 	return S_OK;
 }
 

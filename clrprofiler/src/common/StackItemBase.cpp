@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "stackitems.h"
 
-
 // Default constructor for Thread Stack Item
 StackItemBase::StackItemBase()
 {
@@ -13,7 +12,6 @@ StackItemBase::StackItemBase()
 
 StackItemBase::StackItemBase(ThreadID thread, ThreadStackReason reason) : StackItemBase::StackItemBase()
 {
-	
 	this->m_Thread = thread;
 	this->m_Reason = reason;
 }
@@ -53,11 +51,9 @@ const ThreadStackReason& StackItemBase::Reason()
 	return this->m_Reason;
 }
 
-
 std::shared_ptr<std::vector<BYTE>> StackItemBase::PacketHeader()
 {
 	auto vec = std::vector < BYTE >();
 	auto sharedvec = std::make_shared<std::vector<BYTE>>(vec);
 	return sharedvec;
 }
-

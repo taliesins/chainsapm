@@ -7,7 +7,6 @@ namespace Commands{
 	{
 	}
 
-
 	AssemblyDefinition::~AssemblyDefinition()
 	{
 	}
@@ -24,8 +23,6 @@ namespace Commands{
 
 	std::shared_ptr<std::vector<char>> AssemblyDefinition::Encode()
 	{
-
-
 		if (!hasEncoded)
 		{
 #pragma warning(suppress : 4267) // I'm only sending max 4k of data in one command however, the length() prop is __int64. This is valid.
@@ -34,9 +31,8 @@ namespace Commands{
 
 			m_internalvector = std::vector<char>(size);
 
-			char *intchar = (char*)&size;
-			char *func = (char*)&function;
-
+			auto intchar = reinterpret_cast<char*>(&size);
+			auto func = reinterpret_cast<char*>(&function);
 
 			for (size_t i = 0; i < 4; i++)
 			{

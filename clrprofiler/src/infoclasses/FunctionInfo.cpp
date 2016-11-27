@@ -5,7 +5,6 @@
 namespace InformationClasses {
 	FunctionInfo::FunctionInfo()
 	{
-
 	}
 
 	FunctionInfo::~FunctionInfo()
@@ -54,7 +53,6 @@ namespace InformationClasses {
 			this->m_SignatureString.append(TEXT("("));
 			for (std::vector<ParameterInfo>::iterator it = m_Parameters.begin(); it != this->m_Parameters.end(); it++)
 			{
-
 				this->m_SignatureString.append(it->ParameterTypeString());
 				this->m_SignatureString.append(TEXT(" "));
 				this->m_SignatureString.append(it->ParameterName());

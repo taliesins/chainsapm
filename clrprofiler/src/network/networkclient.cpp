@@ -4,12 +4,9 @@
 #include "NetworkClient.h"
 #include "critsec_helper.h"
 
-
-
-
 // Initialize the socket to NULL.
 SOCKET NetworkClient::m_SocketConnection = NULL;
-PTP_IO NetworkClient::m_ptpIO = NULL;
+PTP_IO NetworkClient::m_ptpIO = nullptr;
 HANDLE NetworkClient::SendRecvEvent;
 CRITICAL_SECTION NetworkClient::OverflowBufferLock;
 std::vector<char> NetworkClient::s_OverflowBuffer = std::vector<char>{ 0 };
@@ -29,25 +26,23 @@ NetworkClient::NetworkClient(std::wstring hostName, std::wstring port)
 	s_OverflowBuffer.reserve(10 * 1024 * 1024);
 
 	// Select the highest socket version 2.2
-	WORD wVersionRequested = MAKEWORD(2, 2);
+	auto wVersionRequested = MAKEWORD(2, 2);
 	WSADATA wsaData;
 	WSAStartup(wVersionRequested, &wsaData);
-	NetworkClient::m_SocketConnection = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, NULL, WSA_FLAG_OVERLAPPED);
+	NetworkClient::m_SocketConnection = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, NULL, WSA_FLAG_OVERLAPPED);
 	timeval t;
 	t.tv_sec = 2;
 	// Just connect to the 
-	WSAConnectByName(NetworkClient::m_SocketConnection, (LPWSTR)m_HostName.c_str(), (LPWSTR)m_HostPort.c_str(), NULL, NULL, NULL, NULL, &t, NULL);
-
+	WSAConnectByName(NetworkClient::m_SocketConnection, const_cast<LPWSTR>(m_HostName.c_str()), const_cast<LPWSTR>(m_HostPort.c_str()), nullptr, nullptr, nullptr, nullptr, &t, nullptr);
 }
-
 
 NetworkClient::~NetworkClient()
 {
-	int i = 0;
+	auto i = 0;
 	i++;
 }
 
-// This is the main loop that will be used for sending and receving data. When a call comes in we will have a callback to a correct processor
+// This is the main loop that will be used for sending and receiving data. When a call comes in we will have a callback to a correct processor
 void NetworkClient::ControllerLoop()
 {
 }
@@ -55,14 +50,13 @@ void NetworkClient::ControllerLoop()
 // Start the network client when we're ready.
 void NetworkClient::Start()
 {
-
-	recvTimer = CreateThreadpoolTimer(&NetworkClient::ReceiveTimerCallback, this, NULL); // See "Customized Thread Pools" section
-	sendTimer = CreateThreadpoolTimer(&NetworkClient::SendTimerCallback, this, NULL); // See "Customized Thread Pools" section
+	recvTimer = CreateThreadpoolTimer(&NetworkClient::ReceiveTimerCallback, this, nullptr); // See "Customized Thread Pools" section
+	sendTimer = CreateThreadpoolTimer(&NetworkClient::SendTimerCallback, this, nullptr); // See "Customized Thread Pools" section
 
 	__int64 dueFileTime = -1 * _SECOND;
 	FILETIME ftDue;
-	ftDue.dwLowDateTime = (DWORD)(dueFileTime & 0xFFFFFFFF);
-	ftDue.dwHighDateTime = (DWORD)(dueFileTime >> 32);
+	ftDue.dwLowDateTime = static_cast<DWORD>(dueFileTime & 0xFFFFFFFF);
+	ftDue.dwHighDateTime = static_cast<DWORD>(dueFileTime >> 32);
 	SetThreadpoolTimer(recvTimer, &ftDue, 1000, 0);
 	SetThreadpoolTimer(sendTimer, &ftDue, 250, 0);
 }
@@ -133,7 +127,7 @@ VOID CALLBACK NetworkClient::SendTimerCallback(
 	{
 		std::queue<std::shared_ptr<std::vector<char>>> * m_Passable = new std::queue<std::shared_ptr<std::vector<char>>>();
 		netClient->insideSendLock = true;
-		WSABUF *bufs = NULL;
+		WSABUF *bufs = nullptr;
 		size_t bufscount = 0;
 		{
 			auto cshFQ = critsec_helper::critsec_helper(&netClient->FrontOutboundLock);
@@ -161,7 +155,7 @@ VOID CALLBACK NetworkClient::SendTimerCallback(
 		}
 		cshBQ.leave_early();
 		sizeCounter += 8;
-		char *size = (char*)&sizeCounter;
+		auto size = reinterpret_cast<char*>(&sizeCounter);
 		char term[] = { 0xCC, 0xCC, 0xCC, 0xCC };
 		bufs[0].buf = size;
 		bufs[0].len = 4;
@@ -172,7 +166,7 @@ VOID CALLBACK NetworkClient::SendTimerCallback(
 
 		if (bufscount > 2)
 		{
-			NetClietCallback *ncc = new NetClietCallback();
+			auto ncc = new NetClietCallback();
 			ncc->netclient = netClient;
 			ncc->sendqueue = m_Passable;
 			DWORD bytesSent = 0;
@@ -218,7 +212,7 @@ VOID CALLBACK NetworkClient::ReceiveTimerCallback(
 		WSAOVERLAPPED overlapped;
 		SecureZeroMemory(&overlapped, sizeof(WSAOVERLAPPED));
 
-		NetClietCallback *ncc = new NetClietCallback();
+		auto ncc = new NetClietCallback();
 		ncc->netclient = netClient;
 		ncc->queue = bigBuffer;
 		StartThreadpoolIo(NetworkClient::m_ptpIO);
@@ -251,20 +245,20 @@ void CALLBACK NetworkClient::NewDataReceived(
 {
 	if (cbTransferred > 0)
 	{
-		auto buffOut = (LPWSABUF)lpOverlapped->hEvent;
-		auto charBuff = (char*)buffOut->buf;
-		auto iterBuff = (char*)buffOut->buf;
-		DWORD totalBuffSize = *(DWORD*)charBuff;
+		auto buffOut = static_cast<LPWSABUF>(lpOverlapped->hEvent);
+		auto charBuff = static_cast<char*>(buffOut->buf);
+		auto iterBuff = static_cast<char*>(buffOut->buf);
+		auto totalBuffSize = *reinterpret_cast<DWORD*>(charBuff);
 
 		if (totalBuffSize == cbTransferred)
 		{
-			auto term = *(unsigned int*)charBuff[totalBuffSize - 4];
+			auto term = *reinterpret_cast<unsigned int*>(charBuff[totalBuffSize - 4]);
 			if (term == 0xCCCCCCCC)
 			{
 				iterBuff += 4;
 				while (iterBuff < iterBuff + (totalBuffSize - 4))
 				{
-					int localBufferSize = *(int*)iterBuff;
+					auto localBufferSize = *reinterpret_cast<int*>(iterBuff);
 					//short term = *(short*)(iterBuff + localBufferSize - 2);
 					iterBuff += localBufferSize;
 				}
@@ -277,8 +271,8 @@ void CALLBACK NetworkClient::NewDataReceived(
 		
 		auto cshFQ = critsec_helper::critsec_helper(&NetworkClient::OverflowBufferLock);
 		{
-			if (NetworkClient::s_OverflowBuffer.size() > 0 && NetworkClient::s_OverflowBuffer.size() == *(DWORD*)NetworkClient::s_OverflowBuffer.data()) {
-				auto term = *(unsigned int*)NetworkClient::s_OverflowBuffer.data()[NetworkClient::s_OverflowBuffer.size() - 4];
+			if (NetworkClient::s_OverflowBuffer.size() > 0 && NetworkClient::s_OverflowBuffer.size() == *reinterpret_cast<DWORD*>(NetworkClient::s_OverflowBuffer.data())) {
+				auto term = *reinterpret_cast<unsigned int*>(NetworkClient::s_OverflowBuffer.data()[NetworkClient::s_OverflowBuffer.size() - 4]);
 				charBuff = NetworkClient::s_OverflowBuffer.data();
 				iterBuff = NetworkClient::s_OverflowBuffer.data();
 				if (term == 0xCCCCCCCC)
@@ -286,7 +280,7 @@ void CALLBACK NetworkClient::NewDataReceived(
 					iterBuff += 4;
 					while (iterBuff < iterBuff + (totalBuffSize - 4))
 					{
-						int localBufferSize = *(int*)iterBuff;
+						auto localBufferSize = *reinterpret_cast<int*>(iterBuff);
 						//short term = *(short*)(iterBuff + localBufferSize - 2);
 						iterBuff += localBufferSize;
 					}
@@ -306,11 +300,11 @@ void CALLBACK NetworkClient::DataSent(
 	IN DWORD dwFlags
 	)
 {
-	if (lpOverlapped->hEvent != NULL)
+	if (lpOverlapped->hEvent != nullptr)
 	{
-		NetClietCallback *ncc = (NetClietCallback*)lpOverlapped->hEvent;
+		auto ncc = static_cast<NetClietCallback*>(lpOverlapped->hEvent);
 		ncc->netclient->insideSendLock = false;
-		ncc->netclient = NULL;
+		ncc->netclient = nullptr;
 		delete lpOverlapped->hEvent;
 	}
 }
@@ -347,10 +341,9 @@ HRESULT NetworkClient::SendNow()
 	auto netClient = this;
 	if (!netClient->insideSendLock)
 	{
-		std::queue<std::shared_ptr<std::vector<char>>> * m_Passable = new std::queue<std::shared_ptr<std::vector<char>>>();
+		auto m_Passable = new std::queue<std::shared_ptr<std::vector<char>>>();
 		netClient->insideSendLock = true;
-		WSABUF *bufs = NULL;
-		int bufscount = 0;
+		
 		{
 			auto cshFQ = critsec_helper::critsec_helper(&netClient->FrontOutboundLock);
 			auto cshBQ = critsec_helper::critsec_helper(&netClient->BackOutboundLock);
@@ -360,9 +353,11 @@ HRESULT NetworkClient::SendNow()
 		}
 
 		auto cshBQ = critsec_helper::critsec_helper(&netClient->BackOutboundLock);
-		size_t buffersize = netClient->m_OutboundQueueBack.size() + 2;
+		auto buffersize = netClient->m_OutboundQueueBack.size() + 2;
+
+		WSABUF *bufs;
 		bufs = new WSABUF[buffersize];
-		int counter = 1;
+		auto counter = 1;
 		size_t sizeCounter = 0;
 		while (!netClient->m_OutboundQueueBack.empty())
 		{
@@ -377,18 +372,19 @@ HRESULT NetworkClient::SendNow()
 		}
 		cshBQ.leave_early();
 		sizeCounter += 8;
-		char *size = (char*)&sizeCounter;
+		auto size = reinterpret_cast<char*>(&sizeCounter);
 		char term[] = { 0xCC, 0xCC, 0xCC, 0xCC };
 		bufs[0].buf = size;
 		bufs[0].len = 4;
 		bufs[counter].buf = term;
 		bufs[counter].len = 4;
 
+		auto bufscount = 0;
 		bufscount = buffersize;
 
 		if (bufscount > 2)
 		{
-			NetClietCallback *ncc = new NetClietCallback();
+			auto ncc = new NetClietCallback();
 			ncc->netclient = netClient;
 			ncc->sendqueue = m_Passable;
 			DWORD bytesSent = 0;
@@ -442,19 +438,19 @@ HRESULT NetworkClient::RecvNow()
 
 		if (bytesRecvd > 0)
 		{
-			auto buffOut = (LPWSABUF)bigBuffer;
-			auto charBuff = (char*)buffOut->buf;
-			auto iterBuff = (char*)buffOut->buf;
-			DWORD totalBuffSize = *(DWORD*)charBuff;
+			auto buffOut = static_cast<LPWSABUF>(bigBuffer);
+			auto charBuff = static_cast<char*>(buffOut->buf);
+			auto iterBuff = static_cast<char*>(buffOut->buf);
+			DWORD totalBuffSize = *reinterpret_cast<DWORD*>(charBuff);
 			if (totalBuffSize == bytesRecvd)
 			{
-				auto term = *(unsigned int*)charBuff[totalBuffSize - 4];
+				auto term = *reinterpret_cast<unsigned int*>(charBuff[totalBuffSize - 4]);
 				if (term == 0xCCCCCCCC)
 				{
 					iterBuff += 4;
 					while (iterBuff < iterBuff + (totalBuffSize - 4))
 					{
-						int localBufferSize = *(int*)iterBuff;
+						auto localBufferSize = *reinterpret_cast<int*>(iterBuff);
 						//short term = *(short*)(iterBuff + localBufferSize - 2);
 						iterBuff += localBufferSize;
 					}
@@ -463,7 +459,6 @@ HRESULT NetworkClient::RecvNow()
 			else {
 				RecvNow();
 			}
-
 		}
 	}
 	return S_OK;

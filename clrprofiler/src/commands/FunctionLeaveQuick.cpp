@@ -1,11 +1,10 @@
 #include "stdafx.h"
 #include "FunctionLeaveQuick.h"
 
-
 namespace Commands
 {
 	FunctionLeaveQuick::FunctionLeaveQuick(FunctionID data, ThreadID threadid, __int64 timestamp) 
-		: function((__int64)data), thread((__int64)threadid), code(0x19), hasEncoded(false), timestamp(timestamp)
+		: function(static_cast<__int64>(data)), thread(static_cast<__int64>(threadid)), code(0x19), hasEncoded(false), timestamp(timestamp)
 	{
 	}
 
@@ -25,11 +24,9 @@ namespace Commands
 
 	std::shared_ptr<std::vector<char>> FunctionLeaveQuick::Encode()
 	{
-
-
 		if (!hasEncoded)
 		{
-			size_t size = sizeof(__int32)	// len
+			auto size = sizeof(__int32)	// len
 				+ sizeof(short)				// code
 				+ sizeof(__int64)			// timstamp
 				+ sizeof(__int64)			// functionid
@@ -38,7 +35,7 @@ namespace Commands
 
 			auto vector = new char[size];
 			short term = 0;
-			auto v2 = (char*)memcpy(vector, &size, sizeof(__int32));
+			auto v2 = static_cast<char*>(memcpy(vector, &size, sizeof(__int32)));
 			v2 += sizeof(__int32);
 			memcpy(v2, &code, sizeof(short));
 			v2 += sizeof(short);
@@ -56,7 +53,6 @@ namespace Commands
 		}
 
 		return m_internalvector;
-
 	}
 
 	std::shared_ptr<ICommand> FunctionLeaveQuick::Decode(std::shared_ptr<std::vector<char>> &data)

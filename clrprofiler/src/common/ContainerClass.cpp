@@ -3,8 +3,6 @@
 #include "../../metadatastaticlib/inc/FunctionInfo.h"
 #include "stackitems.h"
 
-
-
 bool ItemMapping::operator== (const std::wstring &strCompare)
 {
 	return !(this->HashString.compare(strCompare));
@@ -19,7 +17,6 @@ ContainerClass::ContainerClass()
 	this->g_AssemblySet = new std::map<AssemblyID, std::unique_ptr<InformationClasses::AssemblyInfo>>();
 	this->g_ModuleSet = new std::map<ModuleID, std::unique_ptr<InformationClasses::ModuleInfo>>();
 	this->g_FullyQualifiedMethodsToProfile = new std::unordered_multiset<ItemMapping>();
-
 
 	// CRITICAL 1 Thread synchronization for Function Mapper
 	InitializeCriticalSection(&this->g_FunctionSetCriticalSection);

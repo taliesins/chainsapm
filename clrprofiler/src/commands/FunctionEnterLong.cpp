@@ -37,9 +37,8 @@ namespace Commands{
 
 			m_internalvector = std::vector<char>(size);
 
-			char *intchar = (char*)&size;
-			char *func = (char*)&m_data;
-
+			auto intchar = reinterpret_cast<char*>(&size);
+			auto func = reinterpret_cast<char*>(&m_data);
 
 			for (size_t i = 0; i < 4; i++)
 			{
@@ -64,7 +63,6 @@ namespace Commands{
 
 	std::shared_ptr<ICommand> FunctionEnterLong::Decode(std::shared_ptr<std::vector<char>> &data)
 	{
-		
 		return std::make_shared<FunctionEnterLong>(FunctionEnterLong(InformationClasses::FunctionInfo()));
 	}
 }

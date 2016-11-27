@@ -3,14 +3,11 @@
 
 namespace Commands
 {
-
 	FunctionLeaveLong::FunctionLeaveLong()
 	{
 	}
 
-
 	FunctionLeaveLong::~FunctionLeaveLong()
 	{
 	}
-
 }

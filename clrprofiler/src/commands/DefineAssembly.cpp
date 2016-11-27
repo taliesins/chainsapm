@@ -2,7 +2,6 @@
 #include "stdafx.h"
 #include "DefineAssembly.h"
 
-
 namespace Commands
 {
 	DefineAssembly::DefineAssembly(std::wstring& data) 
@@ -31,17 +30,15 @@ namespace Commands
 
 	std::shared_ptr<std::vector<char>> DefineAssembly::Encode()
 	{
-
-
 		if (!hasEncoded)
 		{
 			if (wchar)
 			{
 				code = 0x12;
 
-				size_t strlen = (m_wstring.length());
-				size_t strbytes = strlen*sizeof(wchar_t) + sizeof(wchar_t);
-				size_t size = sizeof(__int32)	// len
+				auto strlen = (m_wstring.length());
+				auto strbytes = strlen*sizeof(wchar_t) + sizeof(wchar_t);
+				auto size = sizeof(__int32)	// len
 					+ sizeof(short)				// code
 					+ sizeof(__int32)			// stringlen
 					+ sizeof(__int64)			// hash
@@ -54,7 +51,7 @@ namespace Commands
 				auto hash = std::hash<std::wstring>();
 				auto hashout = hash(m_wstring);
 
-				auto v2 = (char*)memcpy(vector, &size, sizeof(__int32));
+				auto v2 = static_cast<char*>(memcpy(vector, &size, sizeof(__int32)));
 				v2 += sizeof(__int32);
 				memcpy(v2, &code, sizeof(short));
 				v2 += sizeof(short);
@@ -75,8 +72,8 @@ namespace Commands
 			}
 			else {
 				code = 0x11;
-				size_t strlen = (m_string.length() + 1) * sizeof(char);
-				size_t size = sizeof(__int32)	// len
+				auto strlen = (m_string.length() + 1) * sizeof(char);
+				auto size = sizeof(__int32)	// len
 					+ sizeof(short)				// code
 					+ sizeof(__int32)			// stringlen
 					+ sizeof(__int64)			// hash
@@ -89,7 +86,7 @@ namespace Commands
 				auto hash = std::hash<std::string>();
 				auto hashout = hash(m_string);
 
-				auto v2 = (char*)memcpy(vector, &size, sizeof(__int32));
+				auto v2 = static_cast<char*>(memcpy(vector, &size, sizeof(__int32)));
 				v2 += sizeof(__int32);
 				memcpy(v2, &code, sizeof(short));
 				v2 += sizeof(short);

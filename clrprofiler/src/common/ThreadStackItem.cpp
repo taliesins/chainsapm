@@ -1,10 +1,7 @@
 #include "stdafx.h"
 #include "stackitems.h"
 
-
 // Generic garbage collection suspension creation
-
-
 ThreadStackItem::ThreadStackItem(ThreadID threadId, ThreadStackReason reason) : StackItemBase(threadId, reason)
 {
 	this->m_ThreadName.assign(L"Worker Thread");
@@ -19,4 +16,3 @@ void ThreadStackItem::ThreadName(const std::wstring& threadName)
 {
 	this->m_ThreadName.assign(threadName);
 }
-

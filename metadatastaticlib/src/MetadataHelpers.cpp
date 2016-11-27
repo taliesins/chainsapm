@@ -2,13 +2,11 @@
 
 #include "MetadataHelpers.h"
 
-
 // CRITICAL 1 Research thread safety around metadata functions.
 MetadataHelpers::MetadataHelpers()
 {
 	InitializeCriticalSection(&m_ThreadCS);
 }
-
 
 MetadataHelpers::MetadataHelpers(std::shared_ptr<ICorProfilerInfo> profilerInfo, ModuleID moduleId) : MetadataHelpers()
 {
@@ -36,23 +34,22 @@ MetadataHelpers::MetadataHelpers(std::shared_ptr<ICorProfilerInfo4> profilerInfo
 	m_pICorProfilerInfo4 = profilerInfo;
 }
 
-
 MetadataHelpers::~MetadataHelpers()
 {
 	DeleteCriticalSection(&m_ThreadCS);
-	if (m_pICorProfilerInfo != NULL)
+	if (m_pICorProfilerInfo != nullptr)
 	{
 		m_pICorProfilerInfo.reset();
 	}
-	if (m_pICorProfilerInfo2 != NULL)
+	if (m_pICorProfilerInfo2 != nullptr)
 	{
 		m_pICorProfilerInfo2.reset();
 	}
-	if (m_pICorProfilerInfo3 != NULL)
+	if (m_pICorProfilerInfo3 != nullptr)
 	{
 		m_pICorProfilerInfo3.reset();
 	}
-	if (m_pICorProfilerInfo4 != NULL)
+	if (m_pICorProfilerInfo4 != nullptr)
 	{
 		m_pICorProfilerInfo4.reset();
 	}
@@ -69,17 +66,17 @@ STDMETHODIMP MetadataHelpers::InjectFieldToModule(const ModuleID& ModuleId, cons
 	this->GetMetaDataEmitInterFaceFromModule(ModuleId, _MetaDataEmit, _MetaDataEmit2);
 	this->GetMetaDataImportInterfaceFromModule(ModuleId, _MetaDataImport, _MetaDataImport2);
 
-	if (_MetaDataImport == NULL)
+	if (_MetaDataImport == nullptr)
 	{
 		_MetaDataImport.reset(_MetaDataImport2.get());
 	}
 
-	if (_MetaDataEmit == NULL)
+	if (_MetaDataEmit == nullptr)
 	{
 		_MetaDataEmit.reset(_MetaDataEmit2.get());
 	}
 
-	if (_MetaDataEmit != NULL && _MetaDataImport != NULL)
+	if (_MetaDataEmit != nullptr && _MetaDataImport != nullptr)
 	{
 		MDUTF8CSTR typeDefName;
 
@@ -115,7 +112,7 @@ STDMETHODIMP MetadataHelpers::InjectFieldToModule(const ModuleID& ModuleId, cons
 				testSig,
 				sizeof(testSig),
 				0,
-				0,
+				nullptr,
 				0,
 				&fieldOut);
 
@@ -131,7 +128,6 @@ STDMETHODIMP MetadataHelpers::InjectFieldToModule(const ModuleID& ModuleId, cons
 
 STDMETHODIMP MetadataHelpers::GetFunctionInformation(FunctionID funcId, InformationClasses::FunctionInfo* funcInfo)
 {
-
 	mdMethodDef funcToken;
 	ModuleID modID;
 	ClassID classID;
@@ -141,14 +137,12 @@ STDMETHODIMP MetadataHelpers::GetFunctionInformation(FunctionID funcId, Informat
 
 	this->GetMetaDataImportInterfaceFromFunction(funcId, &funcToken, _MetaDataImport, _MetaDataImport2);
 	
-	
-
-	if (_MetaDataImport == NULL)
+	if (_MetaDataImport == nullptr)
 	{
 		_MetaDataImport.reset(_MetaDataImport2.get());
 	}
 
-	if (_MetaDataImport != NULL)
+	if (_MetaDataImport != nullptr)
 	{
 		/*
 		MSDN link for GetMethodProps
@@ -185,6 +179,7 @@ STDMETHODIMP MetadataHelpers::GetFunctionInformation(FunctionID funcId, Informat
 			&codeRVA,
 			&implFlags
 			);
+
 		DWORD NumberOfParams = sigBlobBytes;
 		
 		funcInfo->FunctionId(funcId);
@@ -203,11 +198,6 @@ STDMETHODIMP MetadataHelpers::GetFunctionInformation(FunctionID funcId, Informat
 		//	funcInfo->ClassInformation(classInfo);
 		//}
 
-
-	
-
-		
-
 		/*
 		MSDN link for GetParamForMethodIndex
 		http://msdn.microsoft.com/en-us/library/ms231012(v=vs.110).aspx
@@ -225,7 +215,7 @@ STDMETHODIMP MetadataHelpers::GetFunctionInformation(FunctionID funcId, Informat
 			//
 			// Is the method static ?
 			//
-			(isStatic) = (BOOL)((methodAttr & mdStatic) != 0);
+			(isStatic) = static_cast<BOOL>((methodAttr & mdStatic) != 0);
 			funcInfo->IsStatic(isStatic);
 
 			//
@@ -275,7 +265,7 @@ STDMETHODIMP MetadataHelpers::GetFunctionInformation(FunctionID funcId, Informat
 				//			
 				std::wstring sigHolder;
 				for (ULONG i = 0;
-					(SUCCEEDED(hr) && (sigBlob != NULL) && (i < (argCount)));
+					(SUCCEEDED(hr) && (sigBlob != nullptr) && (i < (argCount)));
 					i++)
 				{
 					
@@ -352,14 +342,15 @@ STDMETHODIMP MetadataHelpers::GetClassInformation(mdTypeDef ClassMD, Information
 	//	&extends);
 
 	//funcInfo->ClassInformation()->ClassName(std::wstring(szClassName));
-	//return S_OK;
-	
+	//return S_OK;	
 }
+
 STDMETHODIMP MetadataHelpers::GetModuleInformation(mdTypeDef moduleMD, InformationClasses::ModuleInfo* moduleInfo)
 {
 
 	return S_OK;
 }
+
 STDMETHODIMP MetadataHelpers::GetAssemblyInformation(mdTypeDef assemblyMD, InformationClasses::AssemblyInfo* assemblyInfo)
 {
 
@@ -377,86 +368,69 @@ PCCOR_SIGNATURE MetadataHelpers::ParseElementType(const std::unique_ptr<IMetaDat
 		buffer->append(TEXT("void"));
 		break;
 
-
 	case ELEMENT_TYPE_BOOLEAN:
 		buffer->append(TEXT("bool"));
 		break;
-
 
 	case ELEMENT_TYPE_CHAR:
 		buffer->append(TEXT("wchar"));
 		break;
 
-
 	case ELEMENT_TYPE_I1:
 		buffer->append(TEXT("int8"));
 		break;
 
-
 	case ELEMENT_TYPE_U1:
 		buffer->append(TEXT("unsigned int8"));
-		break;
-
+		break;\
 
 	case ELEMENT_TYPE_I2:
 		buffer->append(TEXT("int16"));
 		break;
 
-
 	case ELEMENT_TYPE_U2:
 		buffer->append(TEXT("unsigned int16"));
 		break;
-
 
 	case ELEMENT_TYPE_I4:
 		buffer->append(TEXT("int32"));
 		break;
 
-
 	case ELEMENT_TYPE_U4:
 		buffer->append(TEXT("unsigned int32"));
 		break;
-
 
 	case ELEMENT_TYPE_I8:
 		buffer->append(TEXT("int64"));
 		break;
 
-
 	case ELEMENT_TYPE_U8:
 		buffer->append(TEXT("unsigned int64"));
 		break;
-
 
 	case ELEMENT_TYPE_R4:
 		buffer->append(TEXT("float32"));
 		break;
 
-
 	case ELEMENT_TYPE_R8:
 		buffer->append(TEXT("float64"));
 		break;
-
 
 	case ELEMENT_TYPE_U:
 		buffer->append(TEXT("unsigned int"));
 		break;
 
-
 	case ELEMENT_TYPE_I:
 		buffer->append(TEXT("int"));
 		break;
-
 
 	case ELEMENT_TYPE_OBJECT:
 		buffer->append(TEXT("Object"));
 		break;
 
-
 	case ELEMENT_TYPE_STRING:
 		buffer->append(TEXT("String"));
 		break;
-
 
 	case ELEMENT_TYPE_TYPEDBYREF:
 		buffer->append(TEXT("refany "));
@@ -466,7 +440,6 @@ PCCOR_SIGNATURE MetadataHelpers::ParseElementType(const std::unique_ptr<IMetaDat
 	case ELEMENT_TYPE_VALUETYPE:
 	case ELEMENT_TYPE_CMOD_REQD:
 	case ELEMENT_TYPE_CMOD_OPT:
-
 		mdToken	token;
 		signature += CorSigUncompressToken(signature, &token);
 		if (TypeFromToken(token) != mdtTypeRef)
@@ -479,26 +452,21 @@ PCCOR_SIGNATURE MetadataHelpers::ParseElementType(const std::unique_ptr<IMetaDat
 				zName,
 				MAX_LENGTH,
 				&zLen,
-				NULL,
-				NULL);
+				nullptr,
+				nullptr);
 			buffer->append(zName, zLen - 1);
 		}
 
-
-
 		break;
-
 
 	case ELEMENT_TYPE_SZARRAY:
 		signature = this->ParseElementType(pMDImport, signature, buffer);
 		buffer->append(TEXT("[]"));
 		break;
 
-
 	case ELEMENT_TYPE_ARRAY:
 	{
 							   ULONG rank;
-
 
 							   signature = this->ParseElementType(pMDImport, signature, buffer);
 							   rank = CorSigUncompressData(signature);
@@ -540,15 +508,15 @@ PCCOR_SIGNATURE MetadataHelpers::ParseElementType(const std::unique_ptr<IMetaDat
 											   if ((sizes[i] != 0) && (lower[i] != 0))
 											   {
 												   if (lower[i] == 0)
-													   wsprintf((LPWSTR)buffer->c_str(), TEXT("%d"), sizes[i]);
+													   wsprintf(const_cast<LPWSTR>(buffer->c_str()), TEXT("%d"), sizes[i]);
 
 												   else
 												   {
-													   wsprintf((LPWSTR)buffer->c_str(), TEXT("%d"), lower[i]);
+													   wsprintf(const_cast<LPWSTR>(buffer->c_str()), TEXT("%d"), lower[i]);
 													   buffer->append(TEXT("..."));
 
 													   if (sizes[i] != 0)
-														   wsprintf((LPWSTR)buffer->c_str(), TEXT("%d"), (lower[i] + sizes[i] + 1));
+														   wsprintf(const_cast<LPWSTR>(buffer->c_str()), TEXT("%d"), (lower[i] + sizes[i] + 1));
 												   }
 											   }
 
@@ -568,18 +536,15 @@ PCCOR_SIGNATURE MetadataHelpers::ParseElementType(const std::unique_ptr<IMetaDat
 		buffer->append(TEXT("pinned"));
 		break;
 
-
 	case ELEMENT_TYPE_PTR:
 		signature = this->ParseElementType(pMDImport, signature, buffer);
 		buffer->append(TEXT("*"));
 		break;
 
-
 	case ELEMENT_TYPE_BYREF:
 		signature = this->ParseElementType(pMDImport, signature, buffer);
 		buffer->append(TEXT("&"));
 		break;
-
 
 	default:
 	case ELEMENT_TYPE_END:
@@ -589,11 +554,8 @@ PCCOR_SIGNATURE MetadataHelpers::ParseElementType(const std::unique_ptr<IMetaDat
 
 	} // switch	
 
-
 	return signature;
-
 } // BASEHELPER::ParseElementType
-
 
 
 STDMETHODIMP MetadataHelpers::GetCurrentThread(ThreadID* threadId)
@@ -604,20 +566,20 @@ STDMETHODIMP MetadataHelpers::GetCurrentThread(ThreadID* threadId)
 		this->m_pICorProfilerInfo4->GetCurrentThreadID(threadId);
 		return S_OK;
 	}
-	else if (this->m_pICorProfilerInfo4 == nullptr && this->m_pICorProfilerInfo3 != nullptr)
+	if (this->m_pICorProfilerInfo4 == nullptr && this->m_pICorProfilerInfo3 != nullptr)
 	{
-		 this->m_pICorProfilerInfo3->GetCurrentThreadID(threadId);
-		 return S_OK;
+		this->m_pICorProfilerInfo3->GetCurrentThreadID(threadId);
+		return S_OK;
 	}
-	else if (this->m_pICorProfilerInfo3 == nullptr && this->m_pICorProfilerInfo2 != nullptr)
+	if (this->m_pICorProfilerInfo3 == nullptr && this->m_pICorProfilerInfo2 != nullptr)
 	{
-		 this->m_pICorProfilerInfo2->GetCurrentThreadID(threadId);
-		 return S_OK;
+		this->m_pICorProfilerInfo2->GetCurrentThreadID(threadId);
+		return S_OK;
 	}
-	else if (this->m_pICorProfilerInfo2 == nullptr && this->m_pICorProfilerInfo != nullptr)
+	if (this->m_pICorProfilerInfo2 == nullptr && this->m_pICorProfilerInfo != nullptr)
 	{
-		 this->m_pICorProfilerInfo->GetCurrentThreadID(threadId);
-		 return S_OK;
+		this->m_pICorProfilerInfo->GetCurrentThreadID(threadId);
+		return S_OK;
 	}
 	return E_FAIL;
 	
@@ -625,11 +587,8 @@ STDMETHODIMP MetadataHelpers::GetCurrentThread(ThreadID* threadId)
 
 STDMETHODIMP MetadataHelpers::GetArguments(FunctionID funcId, mdToken MethodDataToken)
 {
-	
 	return S_OK;
 }
-
-
 
 STDMETHODIMP MetadataHelpers::GetMetaDataEmitInterFaceFromModule(ModuleID ModuleId, 
 	const std::unique_ptr<IMetaDataEmit>& _MetaDataEmit, const std::unique_ptr<IMetaDataEmit2>& _MetaDataEmit2)
@@ -697,11 +656,9 @@ STDMETHODIMP MetadataHelpers::GetMetaDataImportInterfaceFromModule(ModuleID Modu
 	return E_FAIL;
 }
 
-
 STDMETHODIMP MetadataHelpers::GetMetaDataImportInterfaceFromFunction(FunctionID funcId, mdMethodDef* funcToken,
 	const std::unique_ptr<IMetaDataImport>& _MetaDataImport, const std::unique_ptr<IMetaDataImport2>& _MetaDataImport2)
 {
-
 	if (_MetaDataImport == nullptr)
 	{
 		HRESULT hr;

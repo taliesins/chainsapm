@@ -6,7 +6,6 @@ namespace Commands {
 	{
 	}
 
-
 	SetFunctionsToMonitor::~SetFunctionsToMonitor()
 	{
 	}

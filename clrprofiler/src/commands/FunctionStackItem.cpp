@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "stackitems.h"
 
-//
 FunctionStackItem::FunctionStackItem(ThreadID threadId, 
 	ThreadStackReason reason, FunctionID funcId, std::shared_ptr<std::vector<UINT_PTR>>& byteData) 
 	: FunctionStackItem(threadId, reason, funcId, NULL)
@@ -16,7 +15,6 @@ FunctionStackItem::FunctionStackItem(ThreadID threadId,
 	this->m_FunctionID = funcId;
 	this->m_ReturnData = returnValue;
 }
-
 
 FunctionStackItem::~FunctionStackItem()
 {
@@ -36,13 +34,11 @@ const std::shared_ptr<std::vector<UINT_PTR>>& FunctionStackItem::ItemStackParame
 void FunctionStackItem::ReturnValue(const UINT_PTR& input)
 {
 	this->m_ReturnData = input;
-
 }
 
 UINT_PTR FunctionStackItem::ReturnValue() const
 {
 	return m_ReturnData;
-
 }
 
 FunctionID FunctionStackItem::FunctionId() const

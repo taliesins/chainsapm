@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "srw_helper.h"
 
-
 srw_helper::srw_helper(const SRWLOCK &srwlock, LockType type)
 {
 	this->m_SRWLock = srwlock;
@@ -15,10 +14,8 @@ srw_helper::srw_helper(const SRWLOCK &srwlock, LockType type)
 		break;
 	default:
 		break;
-	}
-	
+	}	
 }
-
 
 srw_helper::~srw_helper()
 {

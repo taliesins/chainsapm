@@ -12,7 +12,6 @@ namespace InformationClasses {
 
 	ParameterInfo::~ParameterInfo()
 	{
-
 	}
 
 	const std::wstring& ParameterInfo::ParameterName()
@@ -44,5 +43,4 @@ namespace InformationClasses {
 	{
 		this->m_ReturnType = elementType;
 	}
-
 }

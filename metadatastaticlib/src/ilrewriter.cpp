@@ -39,9 +39,6 @@
 #include <memory>
 #include <allocators>
 
-
-
-
 // ILRewriter::Export intentionally does a comparison by casting a variable (delta) down
 // to an INT8, with data loss being expected and handled. This pragma is required because
 // this is compiled with RTC on, and without the pragma, the above cast will generate a
@@ -221,21 +218,20 @@ public:
 	ILRewriter(ICorProfilerInfo * pICorProfilerInfo, ICorProfilerFunctionControl * pICorProfilerFunctionControl, ModuleID moduleID, mdToken tkMethod)
 		: m_pICorProfilerInfo(pICorProfilerInfo), m_pICorProfilerFunctionControl(pICorProfilerFunctionControl),
 		m_moduleId(moduleID), m_tkMethod(tkMethod),m_fGenerateTinyHeader(false),
-		m_pEH(NULL), m_pOffsetToInstr(NULL), m_pOutputBuffer(NULL), m_pIMethodMalloc(NULL), 
-		m_pMetaDataImport(NULL), m_pMetaDataEmit(NULL)
+		m_pEH(nullptr), m_pOffsetToInstr(nullptr), m_pOutputBuffer(nullptr), m_pIMethodMalloc(nullptr), 
+		m_pMetaDataImport(nullptr), m_pMetaDataEmit(nullptr)
 	{
 		m_IL.m_pNext = &m_IL;
 		m_IL.m_pPrev = &m_IL;
-
 		m_nInstrs = 0;        
 	}
 
 	~ILRewriter()
 	{
-		ILInstr * p = m_IL.m_pNext;
+		auto p = m_IL.m_pNext;
 		while (p != &m_IL)
 		{
-			ILInstr * t = p->m_pNext;
+			auto t = p->m_pNext;
 			delete p;
 			p = t;
 		}
@@ -256,9 +252,9 @@ public:
 		// Get metadata interfaces ready
 
 		IfFailRet(m_pICorProfilerInfo->GetModuleMetaData(
-			m_moduleId, ofRead | ofWrite, IID_IMetaDataImport, (IUnknown**)&m_pMetaDataImport));
+			m_moduleId, ofRead | ofWrite, IID_IMetaDataImport, reinterpret_cast<IUnknown**>(&m_pMetaDataImport)));
 
-		IfFailRet(m_pMetaDataImport->QueryInterface(IID_IMetaDataEmit, (void **)&m_pMetaDataEmit));
+		IfFailRet(m_pMetaDataImport->QueryInterface(IID_IMetaDataEmit, reinterpret_cast<void **>(&m_pMetaDataEmit)));
 
 		return S_OK;
 	}
@@ -313,11 +309,11 @@ public:
 		m_pOffsetToInstr[m_CodeSize] = &m_IL;
 		m_IL.m_opcode = -1;
 
-		bool fBranch = false;
+		auto fBranch = false;
 		unsigned offset = 0;
 		while (offset < m_CodeSize)
 		{
-			unsigned startOffset = offset;
+			auto startOffset = offset;
 			unsigned opcode = pIL[offset++];
 
 			if (opcode == CEE_PREFIX1)
@@ -343,16 +339,16 @@ public:
 				return COR_E_INVALIDPROGRAM;
 			}
 
-			BYTE flags = s_OpCodeFlags[opcode];
+			auto flags = s_OpCodeFlags[opcode];
 
-			int size = (flags & OPCODEFLAGS_SizeMask);
+			auto size = (flags & OPCODEFLAGS_SizeMask);
 			if (offset + size > m_CodeSize)
 			{
 				assert(false);
 				return COR_E_INVALIDPROGRAM;
 			}
 
-			ILInstr * pInstr = NewILInstr();
+			auto pInstr = NewILInstr();
 			IfNullRet(pInstr);
 
 			pInstr->m_opcode = opcode;
@@ -397,7 +393,7 @@ public:
 					pInstr->m_Arg32 = nTargets;
 					offset += sizeof(INT32);
 
-					unsigned base = offset + nTargets * sizeof(INT32);
+					auto base = offset + nTargets * sizeof(INT32);
 
 					for (unsigned iTarget = 0; iTarget < nTargets; iTarget++)
 					{
@@ -431,7 +427,7 @@ public:
 		if (fBranch)
 		{
 			// Go over all control flow instructions and resolve the targets
-			for (ILInstr * pInstr = m_IL.m_pNext; pInstr != &m_IL; pInstr = pInstr->m_pNext)
+			for (auto pInstr = m_IL.m_pNext; pInstr != &m_IL; pInstr = pInstr->m_pNext)
 			{
 				if (s_OpCodeFlags[pInstr->m_opcode] & OPCODEFLAGS_BranchTarget)
 					pInstr->m_pTarget = GetInstrFromOffset(pInstr->m_Arg32);
@@ -460,7 +456,7 @@ public:
 			const COR_ILMETHOD_SECT_EH_CLAUSE_FAT* ehInfo;
 			ehInfo = (COR_ILMETHOD_SECT_EH_CLAUSE_FAT*)pILEH->EHClause(iEH, &scratch);
 
-			EHClause* clause = &(m_pEH[iEH]);
+			auto clause = &(m_pEH[iEH]);
 			clause->m_Flags = ehInfo->GetFlags();
 
 			clause->m_pTryBegin = GetInstrFromOffset(ehInfo->GetTryOffset());
@@ -484,7 +480,7 @@ public:
 
 	ILInstr* GetInstrFromOffset(unsigned offset)
 	{
-		ILInstr * pInstr = NULL;
+		ILInstr * pInstr = nullptr;
 
 		if (offset <= m_CodeSize)
 			pInstr = m_pOffsetToInstr[offset];
@@ -536,23 +532,23 @@ public:
 	HRESULT Export()
 	{
 		// One instruction produces 6 bytes in the worst case
-		unsigned maxSize = m_nInstrs * 6;
+		auto maxSize = m_nInstrs * 6;
 
 		m_pOutputBuffer = new BYTE[maxSize];
 		IfNullRet(m_pOutputBuffer);
 
 again:
-		BYTE * pIL = m_pOutputBuffer;
+	auto pIL = m_pOutputBuffer;
 
-		bool fBranch = false;
+		auto fBranch = false;
 		unsigned offset = 0;
 
 		// Go over all instructions and produce code for them
-		for (ILInstr * pInstr = m_IL.m_pNext; pInstr != &m_IL; pInstr = pInstr->m_pNext)
+		for (auto pInstr = m_IL.m_pNext; pInstr != &m_IL; pInstr = pInstr->m_pNext)
 		{
 			pInstr->m_offset = offset;
 
-			unsigned opcode = pInstr->m_opcode;
+			auto opcode = pInstr->m_opcode;
 			if (opcode < CEE_COUNT)
 			{
 				// CEE_PREFIX1 refers not to instruction prefixes (like tail.), but to
@@ -568,22 +564,22 @@ again:
 			}
 
 			assert(pInstr->m_opcode < _countof(s_OpCodeFlags));
-			BYTE flags = s_OpCodeFlags[pInstr->m_opcode];
+			auto flags = s_OpCodeFlags[pInstr->m_opcode];
 			switch (flags)
 			{
 			case 0:
 				break;
 			case 1:
-				*(UNALIGNED INT8 *)&(pIL[offset]) = pInstr->m_Arg8;
+				*reinterpret_cast<INT8 *>(&(pIL[offset])) = pInstr->m_Arg8;
 				break;
 			case 2:
-				*(UNALIGNED INT16 *)&(pIL[offset]) = pInstr->m_Arg16;
+				*reinterpret_cast<INT16 *>(&(pIL[offset])) = pInstr->m_Arg16;
 				break;
 			case 4:
-				*(UNALIGNED INT32 *)&(pIL[offset]) = pInstr->m_Arg32;
+				*reinterpret_cast<INT32 *>(&(pIL[offset])) = pInstr->m_Arg32;
 				break;
 			case 8:
-				*(UNALIGNED INT64 *)&(pIL[offset]) = pInstr->m_Arg64;
+				*reinterpret_cast<INT64 *>(&(pIL[offset])) = pInstr->m_Arg64;
 				break;
 			case 1 | OPCODEFLAGS_BranchTarget:
 				fBranch = true;
@@ -592,7 +588,7 @@ again:
 				fBranch = true;
 				break;
 			case 0 | OPCODEFLAGS_Switch:
-				*(UNALIGNED INT32 *)&(pIL[offset]) = pInstr->m_Arg32;
+				*reinterpret_cast<INT32 *>(&(pIL[offset])) = pInstr->m_Arg32;
 				offset += sizeof(INT32);
 				break;
 			default:
@@ -605,13 +601,13 @@ again:
 
 		if (fBranch)
 		{
-			bool fTryAgain = false;
+			auto fTryAgain = false;
 			unsigned switchBase = 0;
 
 			// Go over all control flow instructions and resolve the targets
-			for (ILInstr * pInstr = m_IL.m_pNext; pInstr != &m_IL; pInstr = pInstr->m_pNext)
+			for (auto pInstr = m_IL.m_pNext; pInstr != &m_IL; pInstr = pInstr->m_pNext)
 			{
-				unsigned opcode = pInstr->m_opcode;
+				auto opcode = pInstr->m_opcode;
 
 				if (pInstr->m_opcode == CEE_SWITCH)
 				{
@@ -621,7 +617,7 @@ again:
 				if (opcode == CEE_SWITCH_ARG)
 				{
 					// Switch args are special
-					*(UNALIGNED INT32 *)&(pIL[pInstr->m_offset]) = pInstr->m_pTarget->m_offset - switchBase;
+					*reinterpret_cast<INT32 *>(&(pIL[pInstr->m_offset])) = pInstr->m_pTarget->m_offset - switchBase;
 					continue;
 				}
 
@@ -637,7 +633,7 @@ again:
 						// Check if delta is too big to fit into an INT8.
 						// 
 						// (see #pragma at top of file)
-						if ((INT8)delta != delta)
+						if (static_cast<INT8>(delta) != delta)
 						{
 							if (opcode == CEE_LEAVE_S)
 							{
@@ -652,10 +648,10 @@ again:
 							fTryAgain = true;
 							continue;
 						}
-						*(UNALIGNED INT8 *)&(pIL[pInstr->m_pNext->m_offset - sizeof(INT8)]) = delta;
+						*reinterpret_cast<INT8 *>(&(pIL[pInstr->m_pNext->m_offset - sizeof(INT8)])) = delta;
 						break;
 					case 4 | OPCODEFLAGS_BranchTarget:
-						*(UNALIGNED INT32 *)&(pIL[pInstr->m_pNext->m_offset - sizeof(INT32)]) = delta;
+						*reinterpret_cast<INT32 *>(&(pIL[pInstr->m_pNext->m_offset - sizeof(INT32)])) = delta;
 						break;
 					default:
 						assert(false);
@@ -669,9 +665,9 @@ again:
 				goto again;
 		}
 
-		unsigned codeSize = offset;
+		auto codeSize = offset;
 		unsigned totalSize;
-		LPBYTE pBody = NULL;
+		LPBYTE pBody = nullptr;
 		if (m_fGenerateTinyHeader)
 		{
 			// Make sure we can fit in a tiny header
@@ -682,10 +678,10 @@ again:
 			pBody = AllocateILMemory(totalSize);
 			IfNullRet(pBody);
 
-			BYTE * pCurrent = pBody;
+			auto pCurrent = pBody;
 
 			// Here's the tiny header
-			*pCurrent = (BYTE) (CorILMethod_TinyFormat | (codeSize << 2));
+			*pCurrent = static_cast<BYTE>(CorILMethod_TinyFormat | (codeSize << 2));
 			pCurrent += sizeof(IMAGE_COR_ILMETHOD_TINY);
 
 			// And the body
@@ -695,7 +691,7 @@ again:
 		{
 			// Use FAT header
 
-			unsigned alignedCodeSize = (offset + 3) & ~3;
+			auto alignedCodeSize = (offset + 3) & ~3;
 
 			totalSize = sizeof(IMAGE_COR_ILMETHOD_FAT) + alignedCodeSize +
 				(m_nEH ? (sizeof(IMAGE_COR_ILMETHOD_SECT_FAT) + sizeof(IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT) * m_nEH) : 0);
@@ -705,30 +701,30 @@ again:
 
 			BYTE * pCurrent = pBody;
 
-			IMAGE_COR_ILMETHOD_FAT *pHeader = (IMAGE_COR_ILMETHOD_FAT *)pCurrent;
+			auto pHeader = reinterpret_cast<IMAGE_COR_ILMETHOD_FAT *>(pCurrent);
 			pHeader->Flags = m_flags | (m_nEH ? CorILMethod_MoreSects : 0) | CorILMethod_FatFormat;
 			pHeader->Size = sizeof(IMAGE_COR_ILMETHOD_FAT) / sizeof(DWORD);
 			pHeader->MaxStack = m_maxStack;
 			pHeader->CodeSize = offset;
 			pHeader->LocalVarSigTok = m_tkLocalVarSig;
 
-			pCurrent = (BYTE*)(pHeader + 1);
+			pCurrent = reinterpret_cast<BYTE*>(pHeader + 1);
 
 			CopyMemory(pCurrent, m_pOutputBuffer, codeSize);
 			pCurrent += alignedCodeSize;
 
 			if (m_nEH != 0)
 			{
-				IMAGE_COR_ILMETHOD_SECT_FAT *pEH = (IMAGE_COR_ILMETHOD_SECT_FAT *)pCurrent;
+				auto pEH = reinterpret_cast<IMAGE_COR_ILMETHOD_SECT_FAT *>(pCurrent);
 				pEH->Kind = CorILMethod_Sect_EHTable | CorILMethod_Sect_FatFormat;
-				pEH->DataSize = (unsigned)(sizeof(IMAGE_COR_ILMETHOD_SECT_FAT) + sizeof(IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT) * m_nEH);
+				pEH->DataSize = static_cast<unsigned>(sizeof(IMAGE_COR_ILMETHOD_SECT_FAT) + sizeof(IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT) * m_nEH);
 
-				pCurrent = (BYTE*)(pEH + 1);
+				pCurrent = reinterpret_cast<BYTE*>(pEH + 1);
 
 				for (unsigned iEH = 0; iEH < m_nEH; iEH++)
 				{
-					EHClause *pSrc = &(m_pEH[iEH]);
-					IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT * pDst = (IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT *)pCurrent;
+					auto pSrc = &(m_pEH[iEH]);
+					auto pDst = reinterpret_cast<IMAGE_COR_ILMETHOD_SECT_EH_CLAUSE_FAT *>(pCurrent);
 
 					pDst->Flags = pSrc->m_Flags;
 					pDst->TryOffset = pSrc->m_pTryBegin->m_offset;
@@ -740,7 +736,7 @@ again:
 					else
 						pDst->FilterOffset = pSrc->m_pFilter->m_offset;
 
-					pCurrent = (BYTE*)(pDst + 1);
+					pCurrent = reinterpret_cast<BYTE*>(pDst + 1);
 				}
 			}
 		}
@@ -753,7 +749,7 @@ again:
 
 	HRESULT SetILFunctionBody(unsigned size, LPBYTE pBody)
 	{
-		if (m_pICorProfilerFunctionControl != NULL)
+		if (m_pICorProfilerFunctionControl != nullptr)
 		{
 			// We're supplying IL for a rejit, so use the rejit mechanism
 			IfFailRet(m_pICorProfilerFunctionControl->SetILFunctionBody(size, pBody));
@@ -769,7 +765,7 @@ again:
 
 	LPBYTE AllocateILMemory(unsigned size)
 	{
-		if (m_pICorProfilerFunctionControl != NULL)
+		if (m_pICorProfilerFunctionControl != nullptr)
 		{
 			// We're supplying IL for a rejit, so we can just allocate from
 			// the heap
@@ -780,14 +776,14 @@ again:
 		// need to use the CLR's IL allocator
 
 		if (FAILED(m_pICorProfilerInfo->GetILFunctionBodyAllocator(m_moduleId, &m_pIMethodMalloc)))
-			return NULL;
+			return nullptr;
 
-		return (LPBYTE) m_pIMethodMalloc->Alloc(size);
+		return static_cast<LPBYTE>(m_pIMethodMalloc->Alloc(size));
 	}
 
 	void DeallocateILMemory(LPBYTE pBody)
 	{
-		if (m_pICorProfilerFunctionControl == NULL)
+		if (m_pICorProfilerFunctionControl == nullptr)
 		{
 			// Old-style instrumentation does not provide a way to free up bytes
 			return;
@@ -825,12 +821,12 @@ again:
 		COR_SIGNATURE rgbNewSig[4096];
 
 		// Use the signature token to look up the actual signature
-		PCCOR_SIGNATURE rgbOrigSig = NULL;
+		PCCOR_SIGNATURE rgbOrigSig = nullptr;
 		ULONG cbOrigSig;
 		if (m_tkLocalVarSig == mdTokenNil)
 		{
 			// Function has no locals to begin with
-			rgbOrigSig = NULL;
+			rgbOrigSig = nullptr;
 			cbOrigSig = 0;
 		}
 		else
@@ -940,12 +936,12 @@ again:
 		COR_SIGNATURE rgbNewSig[4096];
 
 		// Use the signature token to look up the actual signature
-		PCCOR_SIGNATURE rgbOrigSig = NULL;
+		PCCOR_SIGNATURE rgbOrigSig = nullptr;
 		ULONG cbOrigSig;
 		if (m_tkLocalVarSig == mdTokenNil)
 		{
 			// Function has no locals to begin with
-			rgbOrigSig = NULL;
+			rgbOrigSig = nullptr;
 			cbOrigSig = 0;
 		}
 		else
@@ -1037,7 +1033,7 @@ again:
 
 		unsigned char pDataDout[4] {0};
 		//unsigned char tk;
-		ULONG SigTok = CorSigCompressToken(tdSystemArray, &pDataDout);
+		auto SigTok = CorSigCompressToken(tdSystemArray, &pDataDout);
 
 		rgbNewSig[iNewSig++] = pDataDout[0];
 
@@ -1071,7 +1067,7 @@ again:
 	{
 		mdTypeDef tkClass;
 
-		LPWSTR szField = NULL;
+		LPWSTR szField = nullptr;
 		ULONG cchField = 0;
 
 again:
@@ -1080,22 +1076,22 @@ again:
 		case mdtFieldDef:
 			m_pMetaDataImport->GetFieldProps(tk, &tkClass,
 				szField, cchField, &cchField,
-				NULL,
-				NULL, NULL,
-				NULL, NULL, NULL);
+				nullptr,
+				nullptr, nullptr,
+				nullptr, nullptr, nullptr);
 			break;
 
 		case mdtMemberRef:
 			m_pMetaDataImport->GetMemberRefProps(tk, &tkClass,
 				szField, cchField, &cchField,
-				NULL, NULL);
+				nullptr, nullptr);
 			break;
 		default:
 			assert(false);
 			break;
 		}
 
-		if (szField == NULL)
+		if (szField == nullptr)
 		{
 			szField = new WCHAR[cchField];
 			goto again;
@@ -1106,18 +1102,18 @@ again:
 
 	ILInstr * NewLDC(LPVOID p)
 	{
-		ILInstr* pNewInstr = NewILInstr();
-		if (pNewInstr != NULL)
+		auto pNewInstr = NewILInstr();
+		if (pNewInstr != nullptr)
 		{
 			if (sizeof(void*) == 4)
 			{
 				pNewInstr->m_opcode = CEE_LDC_I4;
-				pNewInstr->m_Arg32 = (INT32) (size_t) p;
+				pNewInstr->m_Arg32 = static_cast<INT32>(reinterpret_cast<size_t>(p));
 			}
 			else
 			{
 				pNewInstr->m_opcode = CEE_LDC_I8;
-				pNewInstr->m_Arg64 = (INT64) (size_t) p;
+				pNewInstr->m_Arg64 = static_cast<INT64>(reinterpret_cast<size_t>(p));
 			}
 		}
 		return pNewInstr;
@@ -1158,10 +1154,8 @@ HRESULT AddProbe(
 	//     pInsertProbeBeforeThisInstr
 	//     ...
 
-	ILInstr * pNewInstr = NULL;
-
 	//     ldc.i4/8 moduleID
-	pNewInstr = pilr->NewILInstr();
+	auto pNewInstr = pilr->NewILInstr();
 #ifdef _WIN64
 	pNewInstr->m_opcode = CEE_LDC_I8;
 	pNewInstr->m_Arg64 = moduleID;
@@ -1186,13 +1180,13 @@ HRESULT AddProbe(
 	//     stloc LocalVarUsedForVersion
 	pNewInstr = pilr->NewILInstr();
 	pNewInstr->m_opcode = CEE_STLOC;
-	pNewInstr->m_Arg16 = (INT16) iLocalVersion;
+	pNewInstr->m_Arg16 = static_cast<INT16>(iLocalVersion);
 	pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
 	//     ldloc LocalVarUsedForVersion
 	pNewInstr = pilr->NewILInstr();
 	pNewInstr->m_opcode = CEE_LDLOC;
-	pNewInstr->m_Arg16 = (INT16) iLocalVersion;
+	pNewInstr->m_Arg16 = static_cast<INT16>(iLocalVersion);
 	pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
 
@@ -1239,10 +1233,8 @@ HRESULT AddProbeSA(
 	//     pInsertProbeBeforeThisInstr
 	//     ...
 
-	ILInstr * pNewInstr = NULL;
-
 	//     ldc.i4/8 moduleID
-	pNewInstr = pilr->NewILInstr();
+	auto pNewInstr = pilr->NewILInstr();
 #ifdef _WIN64
 	pNewInstr->m_opcode = CEE_LDC_I8;
 	pNewInstr->m_Arg64 = moduleID;
@@ -1267,13 +1259,13 @@ HRESULT AddProbeSA(
 	//     stloc LocalVarUsedForVersion
 	pNewInstr = pilr->NewILInstr();
 	pNewInstr->m_opcode = CEE_NEWARR;
-	pNewInstr->m_Arg16 = (INT16)iLocalVersion;
+	pNewInstr->m_Arg16 = static_cast<INT16>(iLocalVersion);
 	pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
 	//     ldloc LocalVarUsedForVersion
 	pNewInstr = pilr->NewILInstr();
 	pNewInstr->m_opcode = CEE_LDLOC;
-	pNewInstr->m_Arg16 = (INT16)iLocalVersion;
+	pNewInstr->m_Arg16 = static_cast<INT16>(iLocalVersion);
 	pilr->InsertBefore(pInsertProbeBeforeThisInstr, pNewInstr);
 
 
@@ -1320,10 +1312,8 @@ HRESULT AddProbe2(
 	//     pInsertProbeBeforeThisInstr
 	//     ...
 
-	ILInstr * pNewInstr = NULL;
-
 	//     ldc.i4/8 moduleID
-	pNewInstr = pilr->NewILInstr();
+	auto pNewInstr = pilr->NewILInstr();
 #ifdef _WIN64
 	pNewInstr->m_opcode = CEE_LDC_I8;
 	pNewInstr->m_Arg64 = moduleID;
@@ -1387,10 +1377,8 @@ HRESULT AddProbeAddFunctions(
 	//     pInsertProbeBeforeThisInstr
 	//     ...
 
-	ILInstr * pNewInstr = NULL;
-
 	//     ldc.i4/8 moduleID
-	pNewInstr = pilr->NewILInstr();
+	auto pNewInstr = pilr->NewILInstr();
 #ifdef _WIN64
 	pNewInstr->m_opcode = CEE_LDC_I8;
 	pNewInstr->m_Arg64 = moduleID;
@@ -1435,7 +1423,7 @@ HRESULT AddEnterProbe(
 	UINT iLocalVersion, 
 	mdToken mdEnterProbeRef)
 {
-	ILInstr * pFirstOriginalInstr = pilr->GetILList()->m_pNext;
+	auto pFirstOriginalInstr = pilr->GetILList()->m_pNext;
 
 	return AddProbe(pilr, moduleID, methodDef, nVersion, iLocalVersion, mdEnterProbeRef, pFirstOriginalInstr);
 }
@@ -1450,7 +1438,7 @@ HRESULT AddExitProbe(
 	mdToken mdExitProbeRef)
 {
 	HRESULT hr;
-	BOOL fAtLeastOneProbeAdded = FALSE;
+	auto fAtLeastOneProbeAdded = FALSE;
 
 	// Find all RETs, and insert a call to the exit probe before each one.
 	for (ILInstr * pInstr = pilr->GetILList()->m_pNext; pInstr != pilr->GetILList(); pInstr = pInstr->m_pNext)
@@ -1469,7 +1457,7 @@ HRESULT AddExitProbe(
 				pInstr->m_opcode = CEE_NOP;
 
 				// Add the new RET after
-				ILInstr * pNewRet = pilr->NewILInstr();
+				auto pNewRet = pilr->NewILInstr();
 				pNewRet->m_opcode = CEE_RET;
 				pilr->InsertAfter(pInstr, pNewRet);
 
@@ -1502,7 +1490,7 @@ HRESULT AddEnterProbe2(
 	mdToken sString,
 	mdToken mdEnterProbeRef)
 {
-	ILInstr * pFirstOriginalInstr = pilr->GetILList()->m_pNext;
+	auto pFirstOriginalInstr = pilr->GetILList()->m_pNext;
 
 	return AddProbeAddFunctions(pilr, moduleID, methodDef, sString, mdEnterProbeRef, pFirstOriginalInstr);
 }
@@ -1516,10 +1504,10 @@ HRESULT AddExitProbe2(
 	mdToken mdExitProbeRef)
 {
 	HRESULT hr;
-	BOOL fAtLeastOneProbeAdded = FALSE;
+	auto fAtLeastOneProbeAdded = FALSE;
 
 	// Find all RETs, and insert a call to the exit probe before each one.
-	for (ILInstr * pInstr = pilr->GetILList()->m_pNext; pInstr != pilr->GetILList(); pInstr = pInstr->m_pNext)
+	for (auto pInstr = pilr->GetILList()->m_pNext; pInstr != pilr->GetILList(); pInstr = pInstr->m_pNext)
 	{
 		switch (pInstr->m_opcode)
 		{
@@ -1535,7 +1523,7 @@ HRESULT AddExitProbe2(
 			pInstr->m_opcode = CEE_NOP;
 
 			// Add the new RET after
-			ILInstr * pNewRet = pilr->NewILInstr();
+			auto pNewRet = pilr->NewILInstr();
 			pNewRet->m_opcode = CEE_RET;
 			pilr->InsertAfter(pInstr, pNewRet);
 
@@ -1583,8 +1571,8 @@ HRESULT RewriteIL(
 		// Adds enter/exit probes
 		assert(mdEnterProbeRef != mdTokenNil);
 		assert(mdExitProbeRef != mdTokenNil);
-		UINT iLocalVersion = rewriter.AddNewInt32Local();
-		UINT stringToken = rewriter.AddNewString();
+		auto iLocalVersion = rewriter.AddNewInt32Local();
+		auto stringToken = rewriter.AddNewString();
 		IfFailRet(AddEnterProbe(&rewriter, moduleID, methodDef, nVersion, iLocalVersion, mdEnterProbeRef));
 		IfFailRet(AddExitProbe(&rewriter, moduleID, methodDef, nVersion, iLocalVersion, mdExitProbeRef));
 	}
@@ -1613,7 +1601,7 @@ HRESULT RewriteIL2(
 		// Adds enter/exit probes
 		assert(mdEnterProbeRef != mdTokenNil);
 		assert(mdExitProbeRef != mdTokenNil);
-		UINT stringToken = rewriter.AddNewString();
+		auto stringToken = rewriter.AddNewString();
 		IfFailRet(AddEnterProbe2(&rewriter, moduleID, methodDef, stringToken, mdEnterProbeRef));
 		IfFailRet(AddExitProbe2(&rewriter, moduleID, methodDef, stringToken, mdExitProbeRef));
 	}
@@ -1635,18 +1623,17 @@ HRESULT SetILForManagedHelper(
 	mdMethodDef mdPInvokeToCall)
 {
 	ILRewriter rewriter(
-		pICorProfilerInfo, 
-		NULL, // no ICorProfilerFunctionControl for classic-style on-first-JIT instrumentation
+		pICorProfilerInfo,
+		nullptr, // no ICorProfilerFunctionControl for classic-style on-first-JIT instrumentation
 		moduleID, 
 		mdHelperToAdd);
 
 	rewriter.InitializeTiny();
 
-	ILInstr * pFirstOriginalInstr = rewriter.GetILList()->m_pNext;
-	ILInstr * pNewInstr = NULL;
+	auto pFirstOriginalInstr = rewriter.GetILList()->m_pNext;
 
 	// nop
-	pNewInstr = rewriter.NewILInstr();
+	auto pNewInstr = rewriter.NewILInstr();
 	pNewInstr->m_opcode = CEE_NOP;
 	rewriter.InsertBefore(pFirstOriginalInstr, pNewInstr);
 
@@ -1710,17 +1697,16 @@ HRESULT SetILForManagedHelper2(
 {
 	ILRewriter rewriter(
 		pICorProfilerInfo,
-		NULL, // no ICorProfilerFunctionControl for classic-style on-first-JIT instrumentation
+		nullptr, // no ICorProfilerFunctionControl for classic-style on-first-JIT instrumentation
 		moduleID,
 		mdHelperToAdd);
 
 	rewriter.InitializeTiny();
 
-	ILInstr * pFirstOriginalInstr = rewriter.GetILList()->m_pNext;
-	ILInstr * pNewInstr = NULL;
+	auto pFirstOriginalInstr = rewriter.GetILList()->m_pNext;
 
 	// nop
-	pNewInstr = rewriter.NewILInstr();
+	auto pNewInstr = rewriter.NewILInstr();
 	pNewInstr->m_opcode = CEE_NOP;
 	rewriter.InsertBefore(pFirstOriginalInstr, pNewInstr);
 
@@ -1780,17 +1766,16 @@ HRESULT SetILForManagedHelperAddNumbers(
 {
 	ILRewriter rewriter(
 		pICorProfilerInfo,
-		NULL, // no ICorProfilerFunctionControl for classic-style on-first-JIT instrumentation
+		nullptr, // no ICorProfilerFunctionControl for classic-style on-first-JIT instrumentation
 		moduleID,
 		mdHelperToAdd);
 
 	rewriter.InitializeTiny();
 
-	ILInstr * pFirstOriginalInstr = rewriter.GetILList()->m_pNext;
-	ILInstr * pNewInstr = NULL;
+	auto pFirstOriginalInstr = rewriter.GetILList()->m_pNext;
 
 	// nop
-	pNewInstr = rewriter.NewILInstr();
+	auto pNewInstr = rewriter.NewILInstr();
 	pNewInstr->m_opcode = CEE_NOP;
 	rewriter.InsertBefore(pFirstOriginalInstr, pNewInstr);
 
@@ -1857,17 +1842,16 @@ HRESULT SetILForManagedHelperSA(
 {
 	ILRewriter rewriter(
 		pICorProfilerInfo,
-		NULL, // no ICorProfilerFunctionControl for classic-style on-first-JIT instrumentation
+		nullptr, // no ICorProfilerFunctionControl for classic-style on-first-JIT instrumentation
 		moduleID,
 		mdHelperToAdd);
 
 	rewriter.InitializeTiny();
 
-	ILInstr * pFirstOriginalInstr = rewriter.GetILList()->m_pNext;
-	ILInstr * pNewInstr = NULL;
-
+	auto pFirstOriginalInstr = rewriter.GetILList()->m_pNext;
+	
 	// nop
-	pNewInstr = rewriter.NewILInstr();
+	auto pNewInstr = rewriter.NewILInstr();
 	pNewInstr->m_opcode = CEE_NOP;
 	rewriter.InsertBefore(pFirstOriginalInstr, pNewInstr);
 
@@ -1909,7 +1893,6 @@ HRESULT SetILForManagedHelperSA(
 	pNewInstr->m_opcode = CEE_LDC_I4;
 	pNewInstr->m_Arg32 = 1;
 	rewriter.InsertBefore(pFirstOriginalInstr, pNewInstr);
-
 
 	// ldarg.1 (uint32 methodDef of function being entered / exited)
 	pNewInstr = rewriter.NewILInstr();

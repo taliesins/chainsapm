@@ -6,7 +6,6 @@ namespace InformationClasses {
 	{
 	}
 
-
 	ModuleInfo::~ModuleInfo()
 	{
 	}

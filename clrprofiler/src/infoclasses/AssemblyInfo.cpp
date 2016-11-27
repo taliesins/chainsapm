@@ -6,7 +6,6 @@ namespace InformationClasses {
 	{
 	}
 
-
 	AssemblyInfo::~AssemblyInfo()
 	{
 	}

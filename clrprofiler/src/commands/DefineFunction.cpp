@@ -6,7 +6,7 @@
 namespace Commands
 {
 	DefineFunction::DefineFunction(FunctionID funcId, ClassID classId, const std::wstring& data, __int64 timestamp)
-		: m_wstring(data), hasEncoded(false), wchar(true), code(0x1B), m_funcId((__int64)funcId), m_classId((__int64)classId), m_timestamp(timestamp)
+		: m_wstring(data), hasEncoded(false), wchar(true), code(0x1B), m_funcId(static_cast<__int64>(funcId)), m_classId(static_cast<__int64>(classId)), m_timestamp(timestamp)
 	{
 	}
 
@@ -28,10 +28,9 @@ namespace Commands
 	{
 		if (!hasEncoded)
 		{
-
-			size_t strlen = (m_wstring.length());
-			size_t strbytes = strlen*sizeof(wchar_t) + sizeof(wchar_t);
-			size_t size = sizeof(__int32)	// len
+			auto strlen = (m_wstring.length());
+			auto strbytes = strlen*sizeof(wchar_t) + sizeof(wchar_t);
+			auto size = sizeof(__int32)	// len
 				+ sizeof(short)				// code
 				+ sizeof(__int64)			// timestamp
 				+ sizeof(__int64)			// FunctionId
@@ -43,7 +42,7 @@ namespace Commands
 			auto vector = new char[size];
 			short term = 0;
 
-			auto v2 = (char*)memcpy(vector, &size, sizeof(__int32));
+			auto v2 = static_cast<char*>(memcpy(vector, &size, sizeof(__int32)));
 			v2 += sizeof(__int32);
 			memcpy(v2, &code, sizeof(short));
 			v2 += sizeof(short);

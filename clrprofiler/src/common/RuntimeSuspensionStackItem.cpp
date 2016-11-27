@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "stackitems.h"
 
-
 // Generic runtime suspension creation
 RuntimeSuspensionStackItem::RuntimeSuspensionStackItem(COR_PRF_SUSPEND_REASON suspensionReason) : StackItemBase()
 {

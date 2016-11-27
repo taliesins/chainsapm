@@ -8,8 +8,6 @@
 #include "critsec_helper.h"
 #include "../../metadatastaticlib/inc/allinfo.h"
 
-
-
 // Maximum buffer size for input from file
 #define BUFSIZE 2048
 
@@ -403,19 +401,19 @@ Cprofilermain::~Cprofilermain()
 	delete g_FunctionSet;
 	delete g_ThreadStackMap;
 	delete g_MetadataHelpers;*/
-	if (m_pICorProfilerInfo != NULL)
+	if (m_pICorProfilerInfo != nullptr)
 	{
 		m_pICorProfilerInfo.reset();
 	}
-	if (m_pICorProfilerInfo2 != NULL)
+	if (m_pICorProfilerInfo2 != nullptr)
 	{
 		m_pICorProfilerInfo2.reset();
 	}
-	if (m_pICorProfilerInfo3 != NULL)
+	if (m_pICorProfilerInfo3 != nullptr)
 	{
 		m_pICorProfilerInfo3.reset();
 	}
-	if (m_pICorProfilerInfo4 != NULL)
+	if (m_pICorProfilerInfo4 != nullptr)
 	{
 		m_pICorProfilerInfo4.reset();
 	}
@@ -455,7 +453,7 @@ void Cprofilermain::SetProcessName()
 	WCHAR currentPath[MAX_PATH]{0};
 	WCHAR computerName[MAX_COMPUTERNAME_LENGTH + 1]{0};
 	DWORD maxCNameLen = (MAX_COMPUTERNAME_LENGTH + 1);
-	GetModuleFileName(NULL, imageName, MAX_PATH);
+	GetModuleFileName(nullptr, imageName, MAX_PATH);
 	LPWSTR cmdline = GetCommandLine();
 	GetCurrentDirectory(MAX_PATH, currentPath);
 	GetComputerName(computerName, &maxCNameLen);
@@ -553,7 +551,7 @@ STDMETHODIMP Cprofilermain::SetMask()
 STDMETHODIMP Cprofilermain::GetFullMethodName(FunctionID functionID, std::wstring &methodName)
 {
 	// CRITICAL 8 Move this to the metadata helpers class.
-	IMetaDataImport* pIMetaDataImport = 0;
+	IMetaDataImport* pIMetaDataImport = nullptr;
 	HRESULT hr = S_OK;
 	mdToken funcToken = 0;
 	WCHAR szFunction[NAME_BUFFER_SIZE];
@@ -586,11 +584,11 @@ STDMETHODIMP Cprofilermain::GetFullMethodName(FunctionID functionID, std::wstrin
 		ULONG cchClass;
 
 		// retrieve the function properties based on the token
-		hr = pIMetaDataImport->GetMethodProps(funcToken, &classTypeDef, szFunction, NAME_BUFFER_SIZE, &cchFunction, 0, 0, 0, 0, 0);
+		hr = pIMetaDataImport->GetMethodProps(funcToken, &classTypeDef, szFunction, NAME_BUFFER_SIZE, &cchFunction, nullptr, nullptr, nullptr, nullptr, nullptr);
 		if (SUCCEEDED(hr))
 		{
 			// get the function name
-			hr = pIMetaDataImport->GetTypeDefProps(classTypeDef, szClass, NAME_BUFFER_SIZE, &cchClass, 0, 0);
+			hr = pIMetaDataImport->GetTypeDefProps(classTypeDef, szClass, NAME_BUFFER_SIZE, &cchClass, nullptr, nullptr);
 			if (SUCCEEDED(hr))
 			{
 				// create the fully qualified name
@@ -693,7 +691,7 @@ STDMETHODIMP Cprofilermain::DoWeProfile()
 		currentKey.append(fullString);
 		currentKey.append(lpStr);
 
-		gotValue = RegGetValue(HKEY_LOCAL_MACHINE, currentKey.data(), L"Enabled", RRF_RT_ANY | RRF_ZEROONFAILURE, NULL, &Enabled, &BufferForDWORD);
+		gotValue = RegGetValue(HKEY_LOCAL_MACHINE, currentKey.data(), L"Enabled", RRF_RT_ANY | RRF_ZEROONFAILURE, nullptr, &Enabled, &BufferForDWORD);
 		if ((gotValue != S_OK) | (Enabled == 0))
 		{
 			currentKey.assign(nullptr);
@@ -703,7 +701,7 @@ STDMETHODIMP Cprofilermain::DoWeProfile()
 		gotValue = RegGetValue(HKEY_LOCAL_MACHINE, currentKey.data(), L"LinkName", RRF_RT_ANY | RRF_ZEROONFAILURE, nullptr, BufferForStrings, &BufferSize);
 		if (gotValue == S_OK)
 		{
-			if (BufferForStrings != NULL)
+			if (BufferForStrings != nullptr)
 			{
 				IsAMatch = true;
 				m_AgentName.insert(0, BufferForStrings, (BufferSize / 2));
@@ -718,7 +716,7 @@ STDMETHODIMP Cprofilermain::DoWeProfile()
 		gotValue = RegGetValue(HKEY_LOCAL_MACHINE, currentKey.data(), L"ProcessName", RRF_RT_ANY | RRF_ZEROONFAILURE, nullptr, BufferForStrings, &BufferSize);
 		if (gotValue == S_OK)
 		{
-			if (BufferForStrings != NULL && m_ProcessName.compare(BufferForStrings) != 0)
+			if (BufferForStrings != nullptr && m_ProcessName.compare(BufferForStrings) != 0)
 			{
 				IsAMatch = false;
 			}
@@ -728,7 +726,7 @@ STDMETHODIMP Cprofilermain::DoWeProfile()
 		gotValue = RegGetValue(HKEY_LOCAL_MACHINE, currentKey.data(), L"Directory", RRF_RT_ANY | RRF_ZEROONFAILURE, nullptr, BufferForStrings, &BufferSize);
 		if (gotValue == S_OK)
 		{
-			if (BufferForStrings != NULL && m_ProcessDirectory.find(BufferForStrings) != 0)
+			if (BufferForStrings != nullptr && m_ProcessDirectory.find(BufferForStrings) != 0)
 			{
 				IsAMatch = false;
 			}
@@ -738,7 +736,7 @@ STDMETHODIMP Cprofilermain::DoWeProfile()
 		gotValue = RegGetValue(HKEY_LOCAL_MACHINE, currentKey.data(), L"CommandLine", RRF_RT_ANY | RRF_ZEROONFAILURE, nullptr, BufferForStrings, &BufferSize);
 		if (gotValue == S_OK)
 		{
-			if (BufferForStrings != NULL && m_ProcessCommandLine.find(BufferForStrings) != 0)
+			if (BufferForStrings != nullptr && m_ProcessCommandLine.find(BufferForStrings) != 0)
 			{
 				IsAMatch = false;
 			}
@@ -748,7 +746,7 @@ STDMETHODIMP Cprofilermain::DoWeProfile()
 		gotValue = RegGetValue(HKEY_LOCAL_MACHINE, currentKey.data(), L"Server", RRF_RT_ANY | RRF_ZEROONFAILURE, nullptr, BufferForStrings, &BufferSize);
 		if (gotValue == S_OK)
 		{
-			if (BufferForStrings == NULL)
+			if (BufferForStrings == nullptr)
 			{
 				IsAMatch = true;
 				m_ServerName.insert(0, BufferForStrings, (BufferSize / 2));
@@ -757,7 +755,7 @@ STDMETHODIMP Cprofilermain::DoWeProfile()
 				IsAMatch = false;
 			}
 		}
-		gotValue = RegGetValue(HKEY_LOCAL_MACHINE, currentKey.data(), L"Port", RRF_RT_ANY | RRF_ZEROONFAILURE, NULL, &Port, &BufferForDWORD);
+		gotValue = RegGetValue(HKEY_LOCAL_MACHINE, currentKey.data(), L"Port", RRF_RT_ANY | RRF_ZEROONFAILURE, nullptr, &Port, &BufferForDWORD);
 		if (gotValue == S_OK)
 		{
 			if ((Port < 0) | (Port > 0xFFFF))
@@ -777,7 +775,7 @@ STDMETHODIMP Cprofilermain::DoWeProfile()
 		else {
 			currentKey.assign(nullptr);
 		}
-		key = RegEnumKeyEx(openKey, ++counter, lpStr, &lpDw, NULL, NULL, NULL, NULL);
+		key = RegEnumKeyEx(openKey, ++counter, lpStr, &lpDw, nullptr, nullptr, nullptr, nullptr);
 
 	}
 	RegCloseKey(openKey);
@@ -848,7 +846,7 @@ STDMETHODIMP Cprofilermain::Initialize(IUnknown *pICorProfilerInfoUnk)
 
 		UINT_PTR * clientData = new UINT_PTR(0xDEADBEEF); // We should never see this in our map. This is basically a bounds checker.
 
-		if (m_pICorProfilerInfo2 != NULL)
+		if (m_pICorProfilerInfo2 != nullptr)
 		{
 			clientData = new UINT_PTR(0x0);; // Obviously we're not using any 
 			m_pICorProfilerInfo2->SetFunctionIDMapper((FunctionIDMapper*)&Cprofilermain::Mapper1);
@@ -858,7 +856,7 @@ STDMETHODIMP Cprofilermain::Initialize(IUnknown *pICorProfilerInfoUnk)
 			m_pICorProfilerInfo2->SetEnterLeaveFunctionHooks2((FunctionEnter2*)&FunctionEnter2_x86, (FunctionLeave2*)&FunctionLeave2_x86, (FunctionTailcall2*)&FunctionTail2_x86);
 #endif
 		}
-		if (m_pICorProfilerInfo3 != NULL)
+		if (m_pICorProfilerInfo3 != nullptr)
 		{
 			// .NET40
 			clientData = new UINT_PTR(40);
@@ -872,7 +870,7 @@ STDMETHODIMP Cprofilermain::Initialize(IUnknown *pICorProfilerInfoUnk)
 			//m_pICorProfilerInfo3->SetEnterLeaveFunctionHooks3();
 #endif
 		}
-		if (m_pICorProfilerInfo4 != NULL)
+		if (m_pICorProfilerInfo4 != nullptr)
 		{
 			// .NET45
 			clientData = new UINT_PTR(45);
@@ -931,7 +929,7 @@ STDMETHODIMP Cprofilermain::AssemblyLoadFinished(AssemblyID assemblyId, HRESULT 
 {
 	UNREFERENCED_PARAMETER(hrStatus);
 	//LPCBYTE baseAddress = new byte;
-	wchar_t *stringName = NULL;
+	wchar_t *stringName = nullptr;
 	ULONG cNameSize = 0;
 	ULONG pcchNameSize = 0;
 	//AssemblyID asemId = {};
@@ -1310,8 +1308,8 @@ STDMETHODIMP Cprofilermain::ModuleLoadFinished(ModuleID moduleID, HRESULT hrStat
 	hr = m_pICorProfilerInfo->GetAssemblyInfo(
 		assemblyID,
 		0,          // cchName,
-		NULL,       // pcchName,
-		NULL,       // szName[] ,
+		nullptr,       // pcchName,
+		nullptr,       // szName[] ,
 		&appDomainID,
 		&modIDDummy);
 
@@ -1603,7 +1601,7 @@ STDMETHODIMP Cprofilermain::JITCompilationStarted(FunctionID functionID, BOOL fI
 		{
 			hr = RewriteIL2(
 				m_pICorProfilerInfo.get(),
-				NULL,
+				nullptr,
 				moduleID,
 				methodDef,
 				nVersion,
@@ -1802,7 +1800,7 @@ void Cprofilermain::AddMemberRefs(IMetaDataAssemblyImport * pAssemblyImport, IMe
 			sizeof(rgbPublicKeyToken),
 			L"ProfilerHelper",
 			&assemblyMetaData,
-			NULL,                   // hash blob
+			nullptr,                   // hash blob
 			NULL,                   // cb of hash blob
 			0,                      // flags
 			&assemblyRef);
@@ -1816,7 +1814,7 @@ void Cprofilermain::AddMemberRefs(IMetaDataAssemblyImport * pAssemblyImport, IMe
 	{
 		// Probes are being added to mscorlib. Find existing mscorlib assemblyRef.
 
-		HCORENUM hEnum = NULL;
+		HCORENUM hEnum = nullptr;
 		mdAssemblyRef rgAssemblyRefs[20];
 		ULONG cAssemblyRefsReturned;
 		assemblyRef = mdTokenNil;
@@ -1847,7 +1845,7 @@ void Cprofilermain::AddMemberRefs(IMetaDataAssemblyImport * pAssemblyImport, IMe
 			&assemblyRef));
 
 		pAssemblyImport->CloseEnum(hEnum);
-		hEnum = NULL;
+		hEnum = nullptr;
 
 		assert(assemblyRef != mdTokenNil);
 	}
@@ -2034,15 +2032,15 @@ void Cprofilermain::AddHelperMethodDefs(IMetaDataImport * pImport, IMetaDataEmit
 	ULONG rvaCtor;
 	hr = pImport->GetMethodProps(
 		mdCtor,
-		NULL,		   // Put method's class here. 
-		NULL,		   // Put method's name here.  
+		nullptr,		   // Put method's class here. 
+		nullptr,		   // Put method's name here.  
 		0,			   // Size of szMethod buffer in wide chars.   
-		NULL,		   // Put actual size here 
-		NULL,		   // Put flags here.  
-		NULL,		   // [OUT] point to the blob value of meta data   
-		NULL,		   // [OUT] actual size of signature blob  
+		nullptr,		   // Put actual size here 
+		nullptr,		   // Put flags here.  
+		nullptr,		   // [OUT] point to the blob value of meta data   
+		nullptr,		   // [OUT] actual size of signature blob  
 		&rvaCtor,
-		NULL);
+		nullptr);
 
 	if (FAILED(hr))
 	{
@@ -2290,7 +2288,7 @@ HRESULT Cprofilermain::AddPInvokeForSAMethod(IMetaDataEmit * pEmit, mdTypeDef td
 
 	mdParamDef pmdParamDef;
 	COR_SIGNATURE nativeSig[] = { NATIVE_TYPE_SAFEARRAY };
-	pEmit->DefineParam(*pmdPInvoke, 3, NULL, pdHasFieldMarshal, NULL, NULL, NULL, &pmdParamDef);
+	pEmit->DefineParam(*pmdPInvoke, 3, nullptr, pdHasFieldMarshal, NULL, nullptr, NULL, &pmdParamDef);
 	pEmit->SetFieldMarshal(pmdParamDef, nativeSig, 1);
 
 	LOG_IFFAILEDRET(hr, L"Failed in DefinePinvokeMap when creating P/Invoke method " << wszName);
@@ -2421,7 +2419,7 @@ HRESULT Cprofilermain::AddManagedHelperMethod(IMetaDataEmit * pEmit, mdTypeDef t
 	hr = pEmit->DefineCustomAttribute(
 		*pmdHelperMethod,
 		mdSafeCritical,
-		NULL,          //Blob, contains constructor params in this case none
+		nullptr,          //Blob, contains constructor params in this case none
 		0,             //Size of the blob
 		&tkCustomAttribute);
 
@@ -2467,7 +2465,7 @@ HRESULT Cprofilermain::AddManagedHelperMethod2(IMetaDataEmit * pEmit, mdTypeDef 
 	hr = pEmit->DefineCustomAttribute(
 		*pmdHelperMethod,
 		mdSafeCritical,
-		NULL,          //Blob, contains constructor params in this case none
+		nullptr,          //Blob, contains constructor params in this case none
 		0,             //Size of the blob
 		&tkCustomAttribute);
 
@@ -2514,7 +2512,7 @@ HRESULT Cprofilermain::AddManagedHelperMethodAddNumbers(IMetaDataEmit * pEmit, m
 	hr = pEmit->DefineCustomAttribute(
 		*pmdHelperMethod,
 		mdSafeCritical,
-		NULL,          //Blob, contains constructor params in this case none
+		nullptr,          //Blob, contains constructor params in this case none
 		0,             //Size of the blob
 		&tkCustomAttribute);
 
@@ -2568,7 +2566,7 @@ HRESULT Cprofilermain::AddManagedHelperSAMethod(IMetaDataEmit * pEmit, mdTypeDef
 	hr = pEmit->DefineCustomAttribute(
 		*pmdHelperMethod,
 		mdSafeCritical,
-		NULL,          //Blob, contains constructor params in this case none
+		nullptr,          //Blob, contains constructor params in this case none
 		0,             //Size of the blob
 		&tkCustomAttribute);
 
@@ -2597,10 +2595,10 @@ void Cprofilermain::GetClassAndFunctionNamesFromMethodDef(IMetaDataImport * pImp
 		cchMethodDefName,
 		&cchMethodDefActual,
 		&dwMethodAttr,
-		NULL,       // [OUT] point to the blob value of meta data
-		NULL,       // [OUT] actual size of signature blob
-		NULL,       // [OUT] codeRVA
-		NULL);      // [OUT] Impl. Flags
+		nullptr,       // [OUT] point to the blob value of meta data
+		nullptr,       // [OUT] actual size of signature blob
+		nullptr,       // [OUT] codeRVA
+		nullptr);      // [OUT] Impl. Flags
 
 	if (FAILED(hr))
 	{
@@ -2749,7 +2747,7 @@ BOOL GetTokensFromNames(IDToInfoMap<ModuleID, ModuleInfo> * mMap, LPCWSTR wszMod
 
 {
 	HRESULT hr;
-	HCORENUM hEnum = NULL;
+	HCORENUM hEnum = nullptr;
 	ULONG cMethodDefsReturned = 0;
 	mdTypeDef typeDef;
 	mdMethodDef rgMethodDefs[2];
