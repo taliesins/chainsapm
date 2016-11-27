@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ChainsAPM.Commands.Agent
 {
@@ -33,13 +29,11 @@ namespace ChainsAPM.Commands.Agent
         public byte AgentMinor { get; set; }
         public byte AgentIncremental { get; set; }
         public string AgentName { get; set; }
-
         public int AgentNameHash { get; set; }
-
         public string MachineName { get; set; }
         public int MachineNameHash { get; set; }
-
         public string Version { get { return string.Format("{0}.{1}.{2}", AgentMajor, AgentMinor, AgentIncremental); } }
+
         public AgentInformation()
         {
 
@@ -61,65 +55,66 @@ namespace ChainsAPM.Commands.Agent
         {
             get { return "Agent Information"; }
         }
+
         public ushort Code
         {
             get { return 0x0005; }
         }
+
         public string Description
         {
             get { return "Event that transfers the agent information."; }
         }
+
         public Type CommandType
         {
             get { return typeof(string); }
         }
+
         public Interfaces.ICommand<byte> Decode(ArraySegment<byte> input)
         {
-
-            if (input.Count != 0)
+            if (input.Count == 0)
             {
-                Helpers.ArraySegmentStream segstream = new Helpers.ArraySegmentStream(input);
-                int size = segstream.GetInt32();
-                if (input.Count == size)
-                {
-                    short code = segstream.GetInt16();
-                    if (code == Code)
-                    {
-                        var decodeAgentCapabilities = (Capabilities)segstream.GetInt32();
-                       
-                        var decodeAgentMajor = segstream.GetByte();
-                        var decodeAgentMinor = segstream.GetByte();
-                        var decodeAgentIncremental = segstream.GetByte();
-
-                        var stringlenmachineName = segstream.GetInt32();
-                        var decodeMachineNameHash = segstream.GetInt32();
-                        var decodeMachineName = segstream.GetUnicode(stringlenmachineName);
-
-                        var stringlen = segstream.GetInt32();
-                        var decodeAgentNameHash = segstream.GetInt32();
-                        var decodeAgentName = segstream.GetUnicode(stringlen);
-                        var term = segstream.GetInt16();
-                        if (term != 0)
-                        {
-                            throw new System.Runtime.Serialization.SerializationException("Terminator is a non zero value. Please check the incoming byte stream for possible errors.");
-                        }
-                        return new AgentInformation(decodeAgentCapabilities, decodeAgentMajor, decodeAgentMinor, decodeAgentIncremental, decodeAgentName, decodeAgentNameHash, decodeMachineName, decodeMachineNameHash);
-                    }
-                    else
-                    {
-                        throw new System.Runtime.Serialization.SerializationException("Invalid command code detected. Please check the incoming byte stream for possible errors.");
-                    }
-                }
-                else
-                {
-                    throw new System.Runtime.Serialization.SerializationException("Size of message does not match size of byte stream. Please check the incoming byte stream for possible errors.");
-                }
+                throw new System.Runtime.Serialization.SerializationException(
+                    "Size of message is zero. Please check the incoming byte stream for possible errors. ");
             }
-            else
+            var segstream = new Helpers.ArraySegmentStream(input);
+            var size = segstream.GetInt32();
+            if (input.Count != size)
             {
-                throw new System.Runtime.Serialization.SerializationException("Size of message is zero. Please check the incoming byte stream for possible errors. ");
+                throw new System.Runtime.Serialization.SerializationException(
+                    "Size of message does not match size of byte stream. Please check the incoming byte stream for possible errors.");
             }
+            var code = segstream.GetInt16();
+            if (code != Code)
+            {
+                throw new System.Runtime.Serialization.SerializationException(
+                    "Invalid command code detected. Please check the incoming byte stream for possible errors.");
+            }
+            var decodeAgentCapabilities = (Capabilities) segstream.GetInt32();
+
+            var decodeAgentMajor = segstream.GetByte();
+            var decodeAgentMinor = segstream.GetByte();
+            var decodeAgentIncremental = segstream.GetByte();
+
+            var stringlenmachineName = segstream.GetInt32();
+            var decodeMachineNameHash = segstream.GetInt32();
+            var decodeMachineName = segstream.GetUnicode(stringlenmachineName);
+
+            var stringlen = segstream.GetInt32();
+            var decodeAgentNameHash = segstream.GetInt32();
+            var decodeAgentName = segstream.GetUnicode(stringlen);
+            var term = segstream.GetInt16();
+            if (term != 0)
+            {
+                throw new System.Runtime.Serialization.SerializationException(
+                    "Terminator is a non zero value. Please check the incoming byte stream for possible errors.");
+            }
+            return new AgentInformation(decodeAgentCapabilities, decodeAgentMajor, decodeAgentMinor,
+                decodeAgentIncremental, decodeAgentName, decodeAgentNameHash, decodeMachineName,
+                decodeMachineNameHash);
         }
+
         public byte[] Encode()
         {
             return null;

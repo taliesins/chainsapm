@@ -73,7 +73,7 @@
     <Compile Include="NetworkCommand.cs" />
     <Compile Include="TemplateHPartial.cs" />
     <Compile Include="TemplateCppPartial.cs" />
-    <Compile Include="TemplateCSPartial.cs" />
+    <Compile Include="TemplateCsPartial.cs" />
     <Compile Include="TypeHelper.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -83,10 +83,10 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="CommandGeneratorCS.cs">
+    <Compile Include="CommandGeneratorCs.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
-      <DependentUpon>CommandGeneratorCS.tt</DependentUpon>
+      <DependentUpon>CommandGeneratorCs.tt</DependentUpon>
     </Compile>
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
@@ -126,9 +126,9 @@
       <Generator>TextTemplatingFilePreprocessor</Generator>
       <LastGenOutput>CommandGeneratorCpp.cs</LastGenOutput>
     </Content>
-    <Content Include="CommandGeneratorCS.tt">
+    <Content Include="CommandGeneratorCs.tt">
       <Generator>TextTemplatingFilePreprocessor</Generator>
-      <LastGenOutput>CommandGeneratorCS.cs</LastGenOutput>
+      <LastGenOutput>CommandGeneratorCs.cs</LastGenOutput>
     </Content>
     <Content Include="CommandGeneratorH.tt">
       <Generator>TextTemplatingFilePreprocessor</Generator>

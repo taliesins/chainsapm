@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ChainsAPM.Commands.Common
 {
-    class GetString : Interfaces.ICommand<byte>
-
+    internal class GetString : Interfaces.ICommand<byte>
     {
         public string Name
         {
@@ -28,7 +23,6 @@ namespace ChainsAPM.Commands.Common
         {
             get { throw new NotImplementedException(); }
         }
-
 
         public Interfaces.ICommand<byte> Decode(ArraySegment<byte> input)
         {

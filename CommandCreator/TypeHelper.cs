@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace CommandCreator
 {
@@ -22,6 +19,7 @@ namespace CommandCreator
                 return typeof(Int16).FullName;
             }
         }
+
         public string Int32
         {
             get
@@ -29,6 +27,7 @@ namespace CommandCreator
                 return typeof(Int32).FullName;
             }
         }
+
         public string Int64
         {
             get
@@ -36,6 +35,7 @@ namespace CommandCreator
                 return typeof(Int64).FullName;
             }
         }
+
         public string String
         {
             get
@@ -43,6 +43,7 @@ namespace CommandCreator
                 return typeof(string).FullName;
             }
         }
+
         public string Float
         {
             get
@@ -50,6 +51,7 @@ namespace CommandCreator
                 return typeof(float).FullName;
             }
         }
+
         public string Double
         {
             get
@@ -57,6 +59,5 @@ namespace CommandCreator
                 return typeof(double).FullName;
             }
         }
-
     }
 }

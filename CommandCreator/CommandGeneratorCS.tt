@@ -62,18 +62,22 @@ namespace ChainsAPM.Commands.<#= this.Namespace #>
         {
             get { return "<#= this.Name #>"; }
         }
+
         public ushort Code
         {
             get { return 0x<#= this.Code.ToString("x4") #>; }
         }
+
         public string Description
         {
             get { return "<#= this.Description #>"; }
         }
+
         public Type CommandType
         {
             get { return typeof(<#= this.CommandType.ToString() #>); }
         }
+
         public Interfaces.ICommand<byte> Decode(ArraySegment<byte> input)
         {
 
@@ -135,6 +139,7 @@ if (typeName == typeof(string).FullName) { #>
                 throw new System.Runtime.Serialization.SerializationException("Size of message is zero. Please check the incoming byte stream for possible errors. ");
             }
         }
+
         public byte[] Encode()
         {
             int byteSize 4;
@@ -169,6 +174,5 @@ if (typeName == typeof(string).FullName) { #>
             return null;
         }
     }
-
 }
 

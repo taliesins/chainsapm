@@ -1,28 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ChainsAPM.Helpers
 {
     public sealed class Fnv1a32 : HashAlgorithm
     {
-        private const uint FnvPrime = unchecked(16777619);
+        private const uint FnvPrime = 16777619;
 
-        private const uint FnvOffsetBasis = unchecked(2166136261);
+        private const uint FnvOffsetBasis = 2166136261;
 
-        private uint hash;
+        private uint _hash;
 
         public Fnv1a32()
         {
-            this.Reset();
+            Reset();
         }
 
         public override void Initialize()
         {
-            this.Reset();
+            Reset();
         }
 
         protected override void HashCore(byte[] array, int ibStart, int cbSize)
@@ -31,20 +27,20 @@ namespace ChainsAPM.Helpers
             {
                 unchecked
                 {
-                    this.hash ^= array[i];
-                    this.hash *= FnvPrime;
+                    _hash ^= array[i];
+                    _hash *= FnvPrime;
                 }
             }
         }
 
         protected override byte[] HashFinal()
         {
-            return BitConverter.GetBytes(this.hash);
+            return BitConverter.GetBytes(_hash);
         }
 
         private void Reset()
         {
-            this.hash = FnvOffsetBasis;
+            _hash = FnvOffsetBasis;
         }
     }
     public sealed class Fnv1a64 : HashAlgorithm
@@ -53,16 +49,16 @@ namespace ChainsAPM.Helpers
 
         private const ulong FnvOffsetBasis = unchecked(14695981039346656037);
 
-        private ulong hash;
+        private ulong _hash;
 
         public Fnv1a64()
         {
-            this.Reset();
+            Reset();
         }
 
         public override void Initialize()
         {
-            this.Reset();
+            Reset();
         }
 
         protected override void HashCore(byte[] array, int ibStart, int cbSize)
@@ -71,20 +67,20 @@ namespace ChainsAPM.Helpers
             {
                 unchecked
                 {
-                    this.hash ^= array[i];
-                    this.hash *= FnvPrime;
+                    _hash ^= array[i];
+                    _hash *= FnvPrime;
                 }
             }
         }
 
         protected override byte[] HashFinal()
         {
-            return BitConverter.GetBytes(this.hash);
+            return BitConverter.GetBytes(_hash);
         }
 
         private void Reset()
         {
-            this.hash = FnvOffsetBasis;
+            _hash = FnvOffsetBasis;
         }
     }
 }

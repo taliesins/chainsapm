@@ -2,20 +2,14 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.Serialization;
-using System.Linq;
-using System.Text;
 using System.Collections.ObjectModel;
 using System.Windows.Data;
-using Microsoft.CSharp;
 using System.ComponentModel.DataAnnotations;
-
 
 namespace CommandCreator
 {
-
     public class NetCmdMultiValue : IMultiValueConverter
     {
-
         public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
             return values;
@@ -30,18 +24,16 @@ namespace CommandCreator
     [DataContract]
     public class NetworkCommandViewModel : INotifyPropertyChanged
     {
-
         public string SaveDirectory { get; set; }
         public TypeHelper TypeHelp { get; internal set; }
+        private bool _hasChanges;
 
-
-        private bool m_HasChanges;
         public bool HasChanges
         {
-            get { return m_HasChanges; }
+            get { return _hasChanges; }
             set
             {
-                m_HasChanges = value;
+                _hasChanges = value;
                 if (PropertyChanged != null)
                 {
                     PropertyChanged(this, new PropertyChangedEventArgs("SelectedCommand"));
@@ -49,13 +41,13 @@ namespace CommandCreator
             }
         }
 
-        private NetworkCommand m_NetCommand;
+        private NetworkCommand _netCommand;
         public NetworkCommand SelectedCommand
         {
-            get { return m_NetCommand; }
+            get { return _netCommand; }
             set
             {
-                m_NetCommand = value;
+                _netCommand = value;
                 if (PropertyChanged != null)
                 {
                     PropertyChanged(this, new PropertyChangedEventArgs("SelectedCommand"));
@@ -63,19 +55,20 @@ namespace CommandCreator
             }
         }
 
-        private string m_SelectedType;
+        private string _selectedType;
         public string SelectedType
         {
             get
             {
-                if (string.IsNullOrEmpty(m_SelectedType))
+                if (string.IsNullOrEmpty(_selectedType))
                 {
                     return typeof(Int32).FullName;
-                } return m_SelectedType;
+                }
+                return _selectedType;
             }
             set
             {
-                m_SelectedType = value;
+                _selectedType = value;
                 
                 if (PropertyChanged != null)
                 {
@@ -84,17 +77,17 @@ namespace CommandCreator
             }
         }
 
-        private ObservableCollection<TypeMap> m_CSTypeMapping;
+        private ObservableCollection<TypeMap> _csTypeMapping;
         [DataMember(Order = 1)]
         public ObservableCollection<TypeMap> CSharpTypeMapping
         {
-            get { return m_CSTypeMapping; }
+            get { return _csTypeMapping; }
             set
             {
-                m_CSTypeMapping = value;
-                if (m_CSTypeMapping != null)
+                _csTypeMapping = value;
+                if (_csTypeMapping != null)
                 {
-                    m_CSTypeMapping.CollectionChanged += CollectionChanged;
+                    _csTypeMapping.CollectionChanged += CollectionChanged;
                 }
                 if (PropertyChanged != null)
                 {
@@ -108,17 +101,17 @@ namespace CommandCreator
             HasChanges = true;
         }
 
-        private ObservableCollection<TypeMap> m_CppTypeMapping;
+        private ObservableCollection<TypeMap> _cppTypeMapping;
         [DataMember(Order = 2)]
         public ObservableCollection<TypeMap> CppTypeMapping
         {
-            get { return m_CppTypeMapping; }
+            get { return _cppTypeMapping; }
             set
             {
-                m_CppTypeMapping = value;
-                if (m_CppTypeMapping != null)
+                _cppTypeMapping = value;
+                if (_cppTypeMapping != null)
                 {
-                    m_CppTypeMapping.CollectionChanged += CollectionChanged;
+                    _cppTypeMapping.CollectionChanged += CollectionChanged;
                 }
                 if (PropertyChanged != null)
                 {
@@ -128,17 +121,17 @@ namespace CommandCreator
             }
         }
 
-        private ObservableCollection<NetworkCommandTreeItemModel> m_Commands;
+        private ObservableCollection<NetworkCommandTreeItemModel> _commands;
         [DataMember(Order = 3)]
         public ObservableCollection<NetworkCommandTreeItemModel> NetworkCommands
         {
-            get { return m_Commands; }
+            get { return _commands; }
             set
             {
-                m_Commands = value;
-                if (m_Commands != null)
+                _commands = value;
+                if (_commands != null)
                 {
-                    m_Commands.CollectionChanged += CollectionChanged;
+                    _commands.CollectionChanged += CollectionChanged;
                 }
                 if (PropertyChanged != null)
                 {
@@ -147,7 +140,6 @@ namespace CommandCreator
             }
         }
 
-
         public NetworkCommandViewModel()
         {
             TypeHelp = new TypeHelper();
@@ -155,37 +147,34 @@ namespace CommandCreator
             CSharpTypeMapping = new ObservableCollection<TypeMap>();
             NetworkCommands = new ObservableCollection<NetworkCommandTreeItemModel>();
         }
-        public event PropertyChangedEventHandler PropertyChanged;
 
-        
+        public event PropertyChangedEventHandler PropertyChanged;
     }
 
     public class NetworkCommandTreeItemModel : INotifyPropertyChanged
     {
+        private bool _commandNameRegister;
 
-        private bool cmdNameRegister = false;
-
-        private NetworkCommand m_Command;
+        private NetworkCommand _command;
         public NetworkCommand NetworkCommand
         {
-            get { return m_Command; }
+            get { return _command; }
             set
             {
-                m_Command = value;
-                if (!cmdNameRegister)
+                _command = value;
+                if (!_commandNameRegister)
                 {
-                    cmdNameRegister = true;
-                    m_Command.PropertyChanged += m_Command_PropertyChanged;
+                    _commandNameRegister = true;
+                    _command.PropertyChanged += CommandPropertyChanged;
                 }
                 if (PropertyChanged != null)
                 {
                     PropertyChanged(this, new PropertyChangedEventArgs("NetworkCommand"));
-
                 }
             }
         }
 
-        void m_Command_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        void CommandPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == "Name" | e.PropertyName == "Code")
             {
@@ -194,56 +183,52 @@ namespace CommandCreator
 
         }
 
-        private string m_cmdName;
+        private string _commandName;
         public string CommandName
         {
-            get { return m_cmdName; }
+            get { return _commandName; }
             set
             {
-                m_cmdName = value;
+                _commandName = value;
                 if (PropertyChanged != null)
                 {
                     PropertyChanged(this, new PropertyChangedEventArgs("CommandName"));
                 }
             }
         }
-
-
-
+        
         public event PropertyChangedEventHandler PropertyChanged;
     }
 
     [DataContract]
     public class NetworkCommand : INotifyPropertyChanged
     {
-
-
-        private string m_Name;
+        private string _name;
         [DataMember]
         public string Name
         {
-            get { return m_Name; }
+            get { return _name; }
             set
             {
-                m_Name = value;
+                _name = value;
                 if (PropertyChanged != null)
                 {
                     PropertyChanged(this, new PropertyChangedEventArgs("Name"));
-                    if (string.IsNullOrEmpty(m_ClassName))
+                    if (string.IsNullOrEmpty(_className))
                     {
                         PropertyChanged(this, new PropertyChangedEventArgs("ClassName"));
                     }
                 }
             }
         }
-        private string m_Description;
+        private string _description;
         [DataMember]
         public string Description
         {
-            get { return m_Description; }
+            get { return _description; }
             set
             {
-                m_Description = value;
+                _description = value;
                 if (PropertyChanged != null)
                 {
                     PropertyChanged(this, new PropertyChangedEventArgs("Description"));
@@ -252,15 +237,15 @@ namespace CommandCreator
 
         }
 
-        private int m_Code;
+        private int _code;
         [DataMember]
         [Range(0,0xffff)]
         public int Code
         {
-            get { return m_Code; }
+            get { return _code; }
             set
             {
-                m_Code = value;
+                _code = value;
                 if (PropertyChanged != null)
                 {
                     PropertyChanged(this, new PropertyChangedEventArgs("Code"));
@@ -268,14 +253,14 @@ namespace CommandCreator
             }
         }
 
-        private string m_Namespace;
+        private string _namespace;
         [DataMember]
         public string Namespace
         {
-            get { return m_Namespace; }
+            get { return _namespace; }
             set
             {
-                m_Namespace = value;
+                _namespace = value;
                 if (PropertyChanged != null)
                 {
                     PropertyChanged(this, new PropertyChangedEventArgs("Namespace"));
@@ -283,22 +268,22 @@ namespace CommandCreator
             }
         }
 
-        private string m_ClassName;
+        private string _className;
         [DataMember]
         public string ClassName
         {
             get
             {
                 //
-                    if (string.IsNullOrEmpty(m_ClassName))
+                    if (string.IsNullOrEmpty(_className))
                     {
-                        return m_Name.Replace(" ", "").Replace("!", "").Replace(":", "").Replace(".", "");
+                        return _name.Replace(" ", "").Replace("!", "").Replace(":", "").Replace(".", "");
                     }
-                    return m_Name;
+                    return _name;
             }
             set
             {
-                m_ClassName = value;
+                _className = value;
                 if (PropertyChanged != null)
                 {
                     PropertyChanged(this, new PropertyChangedEventArgs("ClassName"));
@@ -306,14 +291,14 @@ namespace CommandCreator
             }
         }
 
-        private Type m_CommandType;
+        private Type _commandType;
         [DataMember]
         public Type CommandType
         {
-            get { return m_CommandType; }
+            get { return _commandType; }
             set
             {
-                m_CommandType = value;
+                _commandType = value;
                 if (PropertyChanged != null)
                 {
                     PropertyChanged(this, new PropertyChangedEventArgs("CommandType"));
@@ -321,14 +306,14 @@ namespace CommandCreator
             }
         }
 
-        private ObservableCollection<ClassProperty> m_ClassProperties;
+        private ObservableCollection<ClassProperty> _classProperties;
         [DataMember]
         public ObservableCollection<ClassProperty> ClassProperties
         {
-            get { return m_ClassProperties; }
+            get { return _classProperties; }
             set
             {
-                m_ClassProperties = value;
+                _classProperties = value;
                 if (PropertyChanged != null)
                 {
                     PropertyChanged(this, new PropertyChangedEventArgs("ClassProperties"));
@@ -336,14 +321,14 @@ namespace CommandCreator
             }
         }
 
-        private ObservableCollection<EnumerationDefinition> m_EnumerationList;
+        private ObservableCollection<EnumerationDefinition> _enumerationList;
         [DataMember]
         public ObservableCollection<EnumerationDefinition> EnumerationList
         {
-            get { return m_EnumerationList; }
+            get { return _enumerationList; }
             set
             {
-                m_EnumerationList = value;
+                _enumerationList = value;
                 if (PropertyChanged != null)
                 {
                     PropertyChanged(this, new PropertyChangedEventArgs("EnumerationList"));
@@ -351,13 +336,13 @@ namespace CommandCreator
             }
         }
 
-        private EnumerationDefinition m_SelectedEnumeration;
+        private EnumerationDefinition _selectedEnumeration;
         public EnumerationDefinition SelectedEnumeration
         {
-            get { return m_SelectedEnumeration; }
+            get { return _selectedEnumeration; }
             set
             {
-                m_SelectedEnumeration = value;
+                _selectedEnumeration = value;
                 if (PropertyChanged != null)
                 {
                     PropertyChanged(this, new PropertyChangedEventArgs("SelectedEnumeration"));
@@ -390,6 +375,7 @@ namespace CommandCreator
         [DataMember]
         public string NewType { get; set; }
     }
+
     [DataContract]
     public class EnumerationItem
     {
@@ -397,7 +383,6 @@ namespace CommandCreator
         public string Name { get; set; }
         [DataMember]
         public int Value { get; set; }
-
     }
 
     [DataContract]
@@ -408,42 +393,38 @@ namespace CommandCreator
         [DataMember]
         public ObservableCollection<EnumerationItem> Items { get; set; }
 
-        private int m_LastVal;
+        private int _lastValue;
         public int LastValue
         {
             get
             {
-                if (Items.Count > 0)
+                if (Items.Count <= 0) return _lastValue;
+
+                foreach (var item in Items)
                 {
-                    foreach (var item in Items)
-                    {
-                        m_LastVal = Math.Max(item.Value, m_LastVal);
-                    }
-
-
-                    if (Flags)
-                    {
-                        if (m_LastVal > 1)
-                        {
-                            m_LastVal = (int)Math.Log((double)m_LastVal, 2.0);
-                        }
-                    }
-
-
+                    _lastValue = Math.Max(item.Value, _lastValue);
                 }
-                return m_LastVal;
+
+                if (Flags)
+                {
+                    if (_lastValue > 1)
+                    {
+                        _lastValue = (int)Math.Log((double)_lastValue, 2.0);
+                    }
+                }
+                return _lastValue;
 
             }
-            set { m_LastVal = value; }
+            set { _lastValue = value; }
         }
 
-        private bool m_Flags;
+        private bool _flags;
         public bool Flags
         {
-            get { return m_Flags; }
+            get { return _flags; }
             set
             {
-                m_Flags = value;
+                _flags = value;
                 if (PropertyChanged != null)
                 {
                     PropertyChanged(this, new PropertyChangedEventArgs("Flags"));
@@ -451,7 +432,7 @@ namespace CommandCreator
             }
         }
 
-        public void AddEnumerationItem(string ItemName)
+        public void AddEnumerationItem(string itemName)
         {
 
             if (Items == null)
@@ -459,7 +440,7 @@ namespace CommandCreator
                 Items = new ObservableCollection<EnumerationItem>();
             }
 
-            int value = LastValue;
+            var value = LastValue;
             if (Flags && value >= 1)
             {
                 ++value;
@@ -474,7 +455,7 @@ namespace CommandCreator
                 ++value;
             }
 
-            Items.Add(new EnumerationItem() { Name = ItemName, Value = value });
+            Items.Add(new EnumerationItem() { Name = itemName, Value = value });
         }
 
 
@@ -485,6 +466,7 @@ namespace CommandCreator
 
         public event PropertyChangedEventHandler PropertyChanged;
     }
+
     [DataContract]
     public class ClassProperty
     {

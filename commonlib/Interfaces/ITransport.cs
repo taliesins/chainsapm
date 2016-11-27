@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ChainsAPM.Interfaces
@@ -15,5 +12,4 @@ namespace ChainsAPM.Interfaces
         bool Disconnect();
         bool Connected { get; }
     }
-
 }

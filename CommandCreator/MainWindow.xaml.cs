@@ -1,18 +1,9 @@
 ﻿using Microsoft.Win32;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Runtime.Serialization.Json;
 using System.Collections.ObjectModel;
 
 namespace CommandCreator
@@ -28,8 +19,6 @@ namespace CommandCreator
             InitializeComponent();
             CreateCSharpTypeMap();
             CreateCppTypeMap();
-            
-
         }
 
         private void CreateCSharpTypeMap()
@@ -147,17 +136,20 @@ namespace CommandCreator
 
         private void CreateDummyCommands()
         {
-            var nc = new NetworkCommand();
-            nc.Code = 0xff;
-            nc.Name = "TestCommand";
-            nc.Namespace = "Agent";
-            nc.Description = "Test command long decription name";
-            nc.ClassName = "TestCommandClass";
-            nc.ClassProperties = new ObservableCollection<ClassProperty>();
-            nc.ClassProperties.Add(new ClassProperty() { Name = "typ1", TypeName = typeof(string).FullName });
-            nc.ClassProperties.Add(new ClassProperty() { Name = "typ2", TypeName = typeof(string).FullName });
-            nc.EnumerationList = new ObservableCollection<EnumerationDefinition>();
-            nc.EnumerationList.Add(new EnumerationDefinition());
+            var nc = new NetworkCommand
+            {
+                Code = 0xff,
+                Name = "TestCommand",
+                Namespace = "Agent",
+                Description = "Test command long description name",
+                ClassName = "TestCommandClass",
+                ClassProperties = new ObservableCollection<ClassProperty>
+                {
+                    new ClassProperty() {Name = "typ1", TypeName = typeof(string).FullName},
+                    new ClassProperty() {Name = "typ2", TypeName = typeof(string).FullName}
+                },
+                EnumerationList = new ObservableCollection<EnumerationDefinition> {new EnumerationDefinition()}
+            };
             nc.EnumerationList.Last().Flags = true;
             nc.EnumerationList.Last().EnumerationName = "TestEnum";
             nc.EnumerationList.Last().Items = new ObservableCollection<EnumerationItem>();
@@ -193,24 +185,22 @@ namespace CommandCreator
 
         private void CommandBinding_Executed_1(object sender, ExecutedRoutedEventArgs e)
         {
-            var oDiag = new OpenFileDialog();
-            oDiag.Filter = "JSON Settings File (*.json)|*.json";
-            if (oDiag.ShowDialog() == true)
+            var oDiag = new OpenFileDialog
             {
-                var tr = new System.IO.StreamReader(oDiag.OpenFile());
-                var cmd = Newtonsoft.Json.JsonConvert.DeserializeObject<NetworkCommandViewModel>(tr.ReadToEnd());
-                CommandVM.CppTypeMapping = cmd.CppTypeMapping;
-                CommandVM.CSharpTypeMapping = cmd.CSharpTypeMapping;
-                CommandVM.NetworkCommands = cmd.NetworkCommands;
-            }
-
+                Filter = "JSON Settings File (*.json)|*.json"
+            };
+            if (oDiag.ShowDialog() != true) return;
+            var tr = new System.IO.StreamReader(oDiag.OpenFile());
+            var cmd = Newtonsoft.Json.JsonConvert.DeserializeObject<NetworkCommandViewModel>(tr.ReadToEnd());
+            CommandVM.CppTypeMapping = cmd.CppTypeMapping;
+            CommandVM.CSharpTypeMapping = cmd.CSharpTypeMapping;
+            CommandVM.NetworkCommands = cmd.NetworkCommands;
         }
 
         private void CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
         {
             Application.Current.Shutdown();
         }
-
 
         private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -234,7 +224,6 @@ namespace CommandCreator
             CommandVM.SelectedType = lb.Content as string;
             e.Handled = true;
         }
-
 
         private void AddField_Click(object sender, RoutedEventArgs e)
         {
@@ -267,8 +256,6 @@ namespace CommandCreator
 
         private void MoveCommandDown_Click(object sender, RoutedEventArgs e)
         {
-
-
             var lb = listFields;
             var nc = lb.SelectedIndex;
             if ((nc + 1) <= CommandVM.SelectedCommand.ClassProperties.Count)
@@ -281,22 +268,16 @@ namespace CommandCreator
 
         private void AddNewEnumeration_Click(object sender, RoutedEventArgs e)
         {
-            if (CommandVM.SelectedCommand != null)
-            {
-                var enumList = new EnumerationDefinition() { EnumerationName = txtEnumName.Text, Items = new ObservableCollection<EnumerationItem>() };
-                CommandVM.SelectedCommand.EnumerationList.Add(enumList);
-            }
+            if (CommandVM.SelectedCommand == null) return;
+
+            var enumList = new EnumerationDefinition() { EnumerationName = txtEnumName.Text, Items = new ObservableCollection<EnumerationItem>() };
+            CommandVM.SelectedCommand.EnumerationList.Add(enumList);
         }
 
         private void AddEnumerationItem_Click(object sender, RoutedEventArgs e)
         {
-
-            if (CommandVM.SelectedCommand != null)
-            {
-                CommandVM.SelectedCommand.SelectedEnumeration.AddEnumerationItem(txtEnumItem.Text);
-            }
-
-
+            if (CommandVM.SelectedCommand == null) return;
+            CommandVM.SelectedCommand.SelectedEnumeration.AddEnumerationItem(txtEnumItem.Text);
         }
 
 
@@ -304,7 +285,7 @@ namespace CommandCreator
         {
             var json = Newtonsoft.Json.JsonConvert.SerializeObject(CommandVM, Newtonsoft.Json.Formatting.Indented);
             CommandVM.SelectedCommand.TypeMapping = CommandVM.CSharpTypeMapping;
-            var tt = new CommandGeneratorCS(CommandVM.SelectedCommand);
+            var tt = new CommandGeneratorCs(CommandVM.SelectedCommand);
             using (var sw = new System.IO.StreamWriter(string.Format("C:\\Logfiles\\{0}.cs", tt.ClassName)))
             {
                 sw.Write(tt.TransformText());
@@ -321,8 +302,6 @@ namespace CommandCreator
             {
                 sw.Write(ttH.TransformText());
             }
-            
-            
         }
 
         private void CommandBinding_CanExecute_1(object sender, CanExecuteRoutedEventArgs e)
@@ -354,8 +333,8 @@ namespace CommandCreator
 
         private void ProcessAllCommands_Click(object sender, RoutedEventArgs e)
         {
-            int[] commandNumbers = new int[CommandVM.NetworkCommands.Count];
-            for (int i = 0; i < CommandVM.NetworkCommands.Count; i++)
+            var commandNumbers = new int[CommandVM.NetworkCommands.Count];
+            for (var i = 0; i < CommandVM.NetworkCommands.Count; i++)
             {
                 commandNumbers[i] = CommandVM.NetworkCommands[i].NetworkCommand.Code;
             }
@@ -368,7 +347,7 @@ namespace CommandCreator
                 foreach (var item in CommandVM.NetworkCommands)
                 {
                     item.NetworkCommand.TypeMapping = CommandVM.CSharpTypeMapping;
-                    var tt = new CommandGeneratorCS(item.NetworkCommand);
+                    var tt = new CommandGeneratorCs(item.NetworkCommand);
                     using (var sw = new System.IO.StreamWriter(string.Format("C:\\Logfiles\\{0}.cs", tt.ClassName)))
                     {
                         sw.Write(tt.TransformText());

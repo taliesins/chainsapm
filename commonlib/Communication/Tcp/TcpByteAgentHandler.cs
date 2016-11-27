@@ -1,14 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Concurrent;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using ChainsAPM.Interfaces;
-using ChainsAPM.Commands.Common;
 using ChainsAPM.Commands.Agent;
 using System.Runtime.Remoting.Messaging;
-
 
 namespace ChainsAPM.Communication.Tcp
 {
@@ -24,8 +19,8 @@ namespace ChainsAPM.Communication.Tcp
         public DateTime ConnectedTime { get; set; }
         public DateTime DisconnectedTime { get; set; }
 
-        private Dictionary<int, Interfaces.ICommand<byte>> CommandList;
-        private object cmdListLock;
+        private readonly Dictionary<int, ICommand<byte>> _commandList;
+        private readonly object _cmdListLock;
 
         public Dictionary<long, string> StringList;
         public Dictionary<long, string> FunctionList;
@@ -35,45 +30,45 @@ namespace ChainsAPM.Communication.Tcp
         // Thread Id, sequence, threadid
         public Dictionary<long, List<Tuple<long, long>>> ThreadEntryPoint;
 
-        private ITransport<byte[]> m_PacketHandler;
+        private readonly ITransport<byte[]> _packetHandler;
         
-        private object lockingOutbound;
-        private object lockingInbound;
-        private Queue<byte[]> blockingOutboundQueue;
-        private System.Threading.Timer sendTimer; // Let's keep this guy around
-        private System.Threading.Timer recvTimer; // Let's keep this guy around
+        private readonly object _lockingOutbound;
+        private object _lockingInbound;
+        private readonly Queue<byte[]> _blockingOutboundQueue;
+        private readonly System.Threading.Timer _sendTimer; // Let's keep this guy around
+        private readonly System.Threading.Timer _recvTimer; // Let's keep this guy around
         public delegate void HasDataEvent(object sender);
         public event HasDataEvent HasData;
         public delegate void DisconnectedEvent(object sender);
         public event DisconnectedEvent Disconnected;
-        object timerLock = new object();
-        public int messagesSent = 0;
-        int MAX_SENDBUFFER = 1024 * 70; // Keep this out of the LOH
-        private Queue<byte[]> m_buffers;
-        private Queue<ArraySegment<byte>> m_items;
-        private object queuelock = new object();
-        private object chunklock = new object();
+        private readonly object _timerLock = new object();
+        public int MessagesSent = 0;
+        private const int MaxSendbuffer = 1024*70; // Keep this out of the LOH
+        private readonly Queue<byte[]> _buffers;
+        private readonly Queue<ArraySegment<byte>> _items;
+        private readonly object _queuelock = new object();
+        private readonly object _chunklock = new object();
         private bool disconnected = false;
-        private int sendTimerInterval = 250;
-        private int recvTimerInterval = 250;
-        private bool timersSuspended = false;
-        private bool inSend = false;
-        private bool inRecv = false;
-        private List<byte> chunkList;
+        private readonly int _sendTimerInterval = 250;
+        private readonly int _recvTimerInterval = 250;
+        private bool _timersSuspended = false;
+        private bool _inSend = false;
+        private bool _inRecv = false;
+        private readonly List<byte> _chunkList;
 
         public TcpByteAgentHandler(ITransport<byte[]> packethand, HandlerType handType = HandlerType.Balanced)
         {
-            m_PacketHandler = packethand;
-            blockingOutboundQueue = new Queue<byte[]>();
-            lockingOutbound = new object();
-            lockingInbound = new object();
-            m_buffers = new Queue<byte[]>();
-            m_items = new Queue<ArraySegment<byte>>();
-            chunkList = new List<byte>(MAX_SENDBUFFER);
-            int sendTimerInterval = 250;
-            int recvTimerInterval = 250;
-            CommandList = CallContext.LogicalGetData("CommandProviders") as Dictionary<int, Interfaces.ICommand<byte>>;
-            cmdListLock = new object();
+            _packetHandler = packethand;
+            _blockingOutboundQueue = new Queue<byte[]>();
+            _lockingOutbound = new object();
+            _lockingInbound = new object();
+            _buffers = new Queue<byte[]>();
+            _items = new Queue<ArraySegment<byte>>();
+            _chunkList = new List<byte>(MaxSendbuffer);
+            var sendTimerInterval = 250;
+            var recvTimerInterval = 250;
+            _commandList = CallContext.LogicalGetData("CommandProviders") as Dictionary<int, ICommand<byte>>;
+            _cmdListLock = new object();
 
             StringList = new Dictionary<long, string>();
             FunctionList = new Dictionary<long, string>();
@@ -93,124 +88,94 @@ namespace ChainsAPM.Communication.Tcp
                     recvTimerInterval /= 2;
                     sendTimerInterval *= 2;
                     break;
-                default:
-                    break;
             }
-            sendTimer = new System.Threading.Timer(new System.Threading.TimerCallback(async (object o) =>
+            _sendTimer = new System.Threading.Timer(async (object o) =>
             {
-                if (!inSend)
-                {
-                    inSend = true;
-                    await SendData();
-                    inSend = false;
-                }
+                if (_inSend) return;
+                _inSend = true;
+                await SendData();
+                _inSend = false;
+            }, null, sendTimerInterval, sendTimerInterval);
 
-
-            }), null, sendTimerInterval, sendTimerInterval);
-
-            recvTimer = new System.Threading.Timer(new System.Threading.TimerCallback(async (object o) =>
+            _recvTimer = new System.Threading.Timer(async (object o) =>
             {
-                if (!inRecv)
-                {
-                    inRecv = true;
-                    await RecvData();
-                    ExtractData();
-                    inRecv = false;
-                }
-            }), null, recvTimerInterval, recvTimerInterval);
+                if (_inRecv) return;
+                _inRecv = true;
+                await RecvData();
+                ExtractData();
+                _inRecv = false;
+            }, null, recvTimerInterval, recvTimerInterval);
         }
 
         public void PauseTimers()
         {
-            lock (timerLock)
+            lock (_timerLock)
             {
-                if (!timersSuspended)
+                if (_timersSuspended) return;
+
+                try
+                {
+                    _sendTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+                }
+                catch (Exception)
                 {
 
-                    try
-                    {
-                        sendTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
-                    }
-                    catch (Exception)
-                    {
-
-                    }
-                    try
-                    {
-                        recvTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
-                    }
-                    catch (Exception)
-                    {
-
-                    }
-                    timersSuspended = true;
                 }
+                try
+                {
+                    _recvTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+                }
+                catch (Exception)
+                {
+
+                }
+                _timersSuspended = true;
             }
         }
 
         public void RestartTimers()
         {
-            lock (timerLock)
+            lock (_timerLock)
             {
-                if (timersSuspended)
+                if (!_timersSuspended) return;
+
+                try
                 {
-                    try
-                    {
-                        sendTimer.Change(sendTimerInterval, sendTimerInterval);
-                    }
-                    catch (Exception)
-                    {
-
-                    }
-                    try
-                    {
-                        recvTimer.Change(recvTimerInterval, recvTimerInterval);
-                    }
-                    catch (Exception)
-                    {
-
-                    }
-                    timersSuspended = false;
+                    _sendTimer.Change(_sendTimerInterval, _sendTimerInterval);
                 }
+                catch (Exception)
+                {
+
+                }
+                try
+                {
+                    _recvTimer.Change(_recvTimerInterval, _recvTimerInterval);
+                }
+                catch (Exception)
+                {
+
+                }
+                _timersSuspended = false;
             }
         }
+
         private async void SendRecvData(object none)
         {
-
-            try
-            {
-
-                await SendData();
-
-                await RecvData();
-
-                ExtractData();
-
-            }
-            finally
-            {
-
-            }
+            await SendData();
+            await RecvData();
+            ExtractData();
         }
 
         private async Task RecvData()
         {
             byte[] bytes = null;
-            try
-            {
-                bytes = await m_PacketHandler.Receive();
-            }
-            catch (Exception)
-            {
+            bytes = await _packetHandler.Receive();
 
-                throw;
-            }
-
-            lock (queuelock)
+            lock (_queuelock)
             {
                 if (bytes != null)
                 {
-                    m_buffers.Enqueue(bytes);
+                    _buffers.Enqueue(bytes);
                 }
 
             }
@@ -219,24 +184,21 @@ namespace ChainsAPM.Communication.Tcp
         private async Task SendData()
         {
             List<byte> sendArray = null;
-            lock (lockingOutbound)
+            lock (_lockingOutbound)
             {
-                if (blockingOutboundQueue.Count > 0)
+                if (_blockingOutboundQueue.Count > 0)
                 {
-                    sendArray = new List<byte>(MAX_SENDBUFFER);
+                    sendArray = new List<byte>(MaxSendbuffer);
                     try
                     {
-                        while (blockingOutboundQueue.Count > 0)
+                        while (_blockingOutboundQueue.Count > 0)
                         {
-                            sendArray.AddRange(blockingOutboundQueue.Dequeue());
+                            sendArray.AddRange(_blockingOutboundQueue.Dequeue());
                         }
                     }
                     catch (Exception)
                     {
                         sendArray = null;
-                    }
-                    finally
-                    {
                     }
                 }
             }
@@ -244,7 +206,7 @@ namespace ChainsAPM.Communication.Tcp
             {
                 try
                 {
-                    await m_PacketHandler.Send(sendArray.ToArray());
+                    await _packetHandler.Send(sendArray.ToArray());
                 }
                 catch (Exception)
                 {
@@ -255,70 +217,69 @@ namespace ChainsAPM.Communication.Tcp
 
         public void AddCommand(ICommand<byte> command)
         {
-            lock (cmdListLock)
+            lock (_cmdListLock)
             {
-                if (!CommandList.ContainsKey(command.Code))
+                if (!_commandList.ContainsKey(command.Code))
                 {
-                    CommandList.Add(command.Code, command);
+                    _commandList.Add(command.Code, command);
                 }
-
             }
-
         }
+
         public void SendCommand(ICommand<byte> command)
         {
-            lock (lockingOutbound)
+            lock (_lockingOutbound)
             {
-                blockingOutboundQueue.Enqueue(command.Encode());
-                ++messagesSent;
+                _blockingOutboundQueue.Enqueue(command.Encode());
+                ++MessagesSent;
             }
         }
 
         public ICommand<byte> GetCommand()
         {
-            ArraySegment<byte> command = new ArraySegment<byte>();
-            lock (chunklock)
+            var command = new ArraySegment<byte>();
+            lock (_chunklock)
             {
-                command = m_items.Dequeue();
+                command = _items.Dequeue();
             }
+
             if (command != null)
             {
                 var size = BitConverter.ToInt32(command.Array, command.Offset);
                 var code = command.Array[command.Offset + 4];
-                return CommandList[code].Decode(command);
+                return _commandList[code].Decode(command);
             }
-            return null;
 
+            return null;
         }
 
         public void SendCommands(ICommand<byte>[] command)
         {
-            lock (lockingOutbound)
+            lock (_lockingOutbound)
             {
                 foreach (var item in command)
                 {
-                    blockingOutboundQueue.Enqueue(item.Encode());
+                    _blockingOutboundQueue.Enqueue(item.Encode());
                 }
-                ++messagesSent;
+                ++MessagesSent;
             }
         }
 
         public ICommand<byte>[] GetCommands()
         {
-
-            List<ICommand<byte>> outList = new List<ICommand<byte>>();
-            lock (chunklock)
+            var outList = new List<ICommand<byte>>();
+            lock (_chunklock)
             {
-                ArraySegment<byte> command = new ArraySegment<byte>();
-                while (m_items.Count > 0)
+                var command = new ArraySegment<byte>();
+                while (_items.Count > 0)
                 {
-                    command = m_items.Dequeue();
+                    command = _items.Dequeue();
 
                     if (command != null)
                     {
                         var size = BitConverter.ToInt32(command.Array, command.Offset);
                         var code = command.Array[command.Offset + 4];
-                        outList.Add(CommandList[code].Decode(command));
+                        outList.Add(_commandList[code].Decode(command));
                     }
                 }
             }
@@ -331,7 +292,7 @@ namespace ChainsAPM.Communication.Tcp
         {
             try
             {
-                m_PacketHandler.Disconnect();
+                _packetHandler.Disconnect();
             }
             catch (Exception)
             {
@@ -361,8 +322,8 @@ namespace ChainsAPM.Communication.Tcp
         {
             Task.Factory.StartNew(async () =>
                 {
-                    await Task.Delay(Math.Max(sendTimerInterval, recvTimerInterval) * 3);
-                    sendTimer.Dispose();
+                    await Task.Delay(Math.Max(_sendTimerInterval, _recvTimerInterval) * 3);
+                    _sendTimer.Dispose();
                 });
 
             if (!disconnected)
@@ -377,11 +338,11 @@ namespace ChainsAPM.Communication.Tcp
 
         public void Received(byte[][] ReceievedData)
         {
-            lock (queuelock)
+            lock (_queuelock)
             {
                 foreach (var item in ReceievedData)
                 {
-                    m_buffers.Enqueue(item);
+                    _buffers.Enqueue(item);
                 }
 
             }
@@ -390,29 +351,29 @@ namespace ChainsAPM.Communication.Tcp
         private void ExtractData()
         {
 
-            int position = 0;
-            int finalSize = 0;
+            var position = 0;
+            var finalSize = 0;
             byte[] queueToBreak = null;
-            List<ArraySegment<byte>> segmentList = new List<ArraySegment<byte>>();
-            lock (queuelock)
+            var segmentList = new List<ArraySegment<byte>>();
+            lock (_queuelock)
             {
-                if (m_buffers.Count > 0)
+                if (_buffers.Count > 0)
                 {
 
-                    while (m_buffers.Count > 0)
+                    while (_buffers.Count > 0)
                     {
-                        byte[] localqueueChunk = m_buffers.Dequeue();
-                        chunkList.AddRange(localqueueChunk);
+                        var localqueueChunk = _buffers.Dequeue();
+                        _chunkList.AddRange(localqueueChunk);
                         position += localqueueChunk.Length;
                     }
 
-                    byte[] queueChunk = chunkList.ToArray();
-                    chunkList.Clear();
+                    var queueChunk = _chunkList.ToArray();
+                    _chunkList.Clear();
                     queueToBreak = new byte[queueChunk.Length];
                     segmentList = new List<ArraySegment<byte>>();
-                    for (int i = 0; i < queueChunk.Length; )
+                    for (var i = 0; i < queueChunk.Length; )
                     {
-                        int size = 0;
+                        var size = 0;
                         if (queueChunk.Length - 4 >= i + 4)
                         {
                             size = BitConverter.ToInt32(queueChunk, i);
@@ -426,41 +387,41 @@ namespace ChainsAPM.Communication.Tcp
                         }
                         else
                         {
-                            byte[] remainder = new byte[queueChunk.Length - i];
+                            var remainder = new byte[queueChunk.Length - i];
                             Array.Copy(queueChunk, i, remainder, 0, queueChunk.Length - i);
-                            m_buffers.Enqueue(remainder);
+                            _buffers.Enqueue(remainder);
                             break;
                         }
                     }
                 }
             }
-            lock (chunklock)
+
+            lock (_chunklock)
             {
-                if (finalSize > 0)
+                if (finalSize <= 0) return;
+
+                var listOfSizes = new List<int>();
+                Array.Resize(ref queueToBreak, finalSize);
+                foreach (var item in segmentList)
                 {
-                    var listOfSizes = new List<int>();
-                    Array.Resize(ref queueToBreak, finalSize);
-                    foreach (var item in segmentList)
+                    for (var i = 0; i < item.Count; )
                     {
-                        for (int i = 0; i < item.Count; )
+                        var startOffset = i + item.Offset;
+                        var size = BitConverter.ToInt32(item.Array, startOffset);
+                        if (size > 0 && size < 4096)
                         {
-                            var startOffset = i + item.Offset;
-                            int size = BitConverter.ToInt32(item.Array, startOffset);
-                            if (size > 0 && size < 4096)
-                            {
-                                listOfSizes.Add(size);
-                                var segment = new ArraySegment<byte>(item.Array, startOffset, size);
-                                m_items.Enqueue(segment);
-                                i += size;
-                            }
-                            else
-                            {
-                                break;
-                            }
+                            listOfSizes.Add(size);
+                            var segment = new ArraySegment<byte>(item.Array, startOffset, size);
+                            _items.Enqueue(segment);
+                            i += size;
+                        }
+                        else
+                        {
+                            break;
                         }
                     }
-                    HasData(this);
                 }
+                HasData(this);
             }
         }
         public void Sent()

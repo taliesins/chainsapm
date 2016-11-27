@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ChainsAPM.Interfaces
+﻿namespace ChainsAPM.Interfaces
 {
     public interface IPacketAssembler<T, Tdata>
     {
@@ -14,6 +8,7 @@ namespace ChainsAPM.Interfaces
         /// <param name="ObjectToSend"></param>
         /// <returns></returns>
         Tdata SendItem(T ObjectToSend);
+        
         /// <summary>
         /// Output an instance of <see cref="{Tdata}"/> with a mulitple type <see cref="{T[]}"/>.
         /// </summary>

@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Concurrent;
-using System.Linq;
-using System.Text;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Threading;
@@ -15,39 +12,37 @@ namespace ChainsAPM.Communication.Tcp
 
     public sealed class SocketAwaitable : INotifyCompletion
     {
-        private readonly static Action SENTINEL = () => { };
+        private static readonly Action Sentinel = () => { };
 
-        internal bool m_wasCompleted;
-        internal Action m_continuation;
-        internal SocketAsyncEventArgs m_eventArgs;
+        internal bool WasCompleted;
+        internal Action Continuation;
+        internal SocketAsyncEventArgs EventArgs;
 
         public SocketAwaitable(SocketAsyncEventArgs eventArgs)
         {
             if (eventArgs == null) throw new ArgumentNullException("eventArgs");
-            m_eventArgs = eventArgs;
+            EventArgs = eventArgs;
             eventArgs.Completed += delegate
             {
-                var prev = m_continuation ?? Interlocked.CompareExchange(
-                    ref m_continuation, SENTINEL, null);
-                if (prev != null) prev();
+                (Continuation ?? Interlocked.CompareExchange(ref Continuation, Sentinel, null))?.Invoke();
             };
         }
 
         internal void Reset()
         {
-            m_wasCompleted = false;
-            m_continuation = null;
+            WasCompleted = false;
+            Continuation = null;
         }
 
         public SocketAwaitable GetAwaiter() { return this; }
 
-        public bool IsCompleted { get { return m_wasCompleted; } }
+        public bool IsCompleted { get { return WasCompleted; } }
 
         public void OnCompleted(Action continuation)
         {
-            if (m_continuation == SENTINEL ||
+            if (Continuation == Sentinel ||
                 Interlocked.CompareExchange(
-                    ref m_continuation, continuation, null) == SENTINEL)
+                    ref Continuation, continuation, null) == Sentinel)
             {
                 Task.Run(continuation);
             }
@@ -55,18 +50,19 @@ namespace ChainsAPM.Communication.Tcp
 
         public void GetResult()
         {
-            if (m_eventArgs.SocketError != SocketError.Success)
-                throw new SocketException((int)m_eventArgs.SocketError);
+            if (EventArgs.SocketError != SocketError.Success)
+                throw new SocketException((int)EventArgs.SocketError);
         }
     }
+
     public static class SocketExtensions
     {
         public static SocketAwaitable ReceiveAsync(this Socket socket,
             SocketAwaitable awaitable)
         {
             awaitable.Reset();
-            if (!socket.ReceiveAsync(awaitable.m_eventArgs))
-                awaitable.m_wasCompleted = true;
+            if (!socket.ReceiveAsync(awaitable.EventArgs))
+                awaitable.WasCompleted = true;
             return awaitable;
         }
 
@@ -74,8 +70,8 @@ namespace ChainsAPM.Communication.Tcp
             SocketAwaitable awaitable)
         {
             awaitable.Reset();
-            if (!socket.SendAsync(awaitable.m_eventArgs))
-                awaitable.m_wasCompleted = true;
+            if (!socket.SendAsync(awaitable.EventArgs))
+                awaitable.WasCompleted = true;
             return awaitable;
         }
 
@@ -83,85 +79,70 @@ namespace ChainsAPM.Communication.Tcp
     }
     public class TcpByteTransport : ITransport<byte[]>, IDisposable
     {
-        public System.Net.Sockets.NetworkStream m_Socket;
-        System.Net.Sockets.TcpClient m_Client;
-        private byte[] internalBuffer;
-        private Queue<byte[]> m_InboundQueue;
-        private object m_QueueLock;
-        private object inRecv;
-        private bool disposed;
-        public System.Net.Sockets.Socket Socket { get { return m_Client.Client; } }
+        private readonly NetworkStream _socket;
+        private readonly TcpClient _client;
+        private readonly byte[] _internalBuffer;
+        private Queue<byte[]> _inboundQueue;
+        private readonly object _queueLock;
+        private object _inRecv;
+        private bool _disposed;
+        public Socket Socket { get { return _client.Client; } }
 
-
-        public TcpByteTransport(System.Net.Sockets.TcpClient socket)
+        public TcpByteTransport(TcpClient socket)
         {
             socket.ReceiveTimeout = 5000;
             socket.SendTimeout = 5000;
             socket.ReceiveBufferSize = 1 * 1024 * 1024;
             socket.SendBufferSize = 1 * 1024 * 1024;
-            m_Client = socket;
-            m_Socket = socket.GetStream();
+            _client = socket;
+            _socket = socket.GetStream();
             socket.Client.UseOnlyOverlappedIO = true;
-            internalBuffer = new byte[10 * 1024 * 1024];
-            m_InboundQueue = new Queue<byte[]>();
-            m_QueueLock = new object();
+            _internalBuffer = new byte[10 * 1024 * 1024];
+            _inboundQueue = new Queue<byte[]>();
+            _queueLock = new object();
             socket.Client.Blocking = false;
-            inRecv = new object();
-
+            _inRecv = new object();
         }
-
 
         public async Task<bool> Send(byte[] data)
         {
+            if (_disposed || !_client.Connected) return false;
 
-            if (!disposed)
+            var dataToSend = new byte[data.Length + 8];
+            Array.Copy(BitConverter.GetBytes(dataToSend.Length), dataToSend, 4); // PackageLength
+            Array.Copy(data, 0, dataToSend, 4, data.Length); // Messages
+            Array.Copy(new byte[] { 0xCC, 0xCC, 0xCC, 0xCC }, 0, dataToSend, data.Length + 4, 4); // PostAmble
+
+            try
             {
-                if (m_Client.Connected)
-                {
-                    byte[] dataToSend = new byte[data.Length + 8];
-                    Array.Copy(BitConverter.GetBytes(dataToSend.Length), dataToSend, 4); // PackageLength
-                    Array.Copy(data, 0, dataToSend, 4, data.Length); // Messages
-                    Array.Copy(new byte[] { 0xCC, 0xCC, 0xCC, 0xCC }, 0, dataToSend, data.Length + 4, 4); // PostAmble
-
-                    try
-                    {
-                        await m_Socket.WriteAsync(dataToSend, 0, dataToSend.Length);
-                    }
-                    catch (Exception)
-                    {
-                        disposed = true;
-                    }
-
-                    return true;
-                }
+                await _socket.WriteAsync(dataToSend, 0, dataToSend.Length);
             }
-            return false;
+            catch (Exception)
+            {
+                _disposed = true;
+            }
+
+            return true;
         }
 
         public async Task<byte[]> Receive()
         {
+            if (_disposed) return null;
+            // Reusable SocketAsyncEventArgs and awaitable wrapper
 
-            if (!disposed)
+            try
             {
-
-                // Reusable SocketAsyncEventArgs and awaitable wrapper 
-                
-
-
-                try
+                var bytes = await _socket.ReadAsync(_internalBuffer, 0, _internalBuffer.Length);
+                if (bytes > 0)
                 {
-                    var bytes = await m_Socket.ReadAsync(internalBuffer, 0, internalBuffer.Length);
-                    if (bytes > 0)
-                    {
-                        byte[] queueBuffer = new byte[bytes];
-                        Array.Copy(internalBuffer, queueBuffer, bytes);
-                        return queueBuffer;
-                    }
+                    var queueBuffer = new byte[bytes];
+                    Array.Copy(_internalBuffer, queueBuffer, bytes);
+                    return queueBuffer;
                 }
-                catch (Exception)
-                {
-                    disposed = true;
-                }
+            }
+            catch (Exception)
+            {
+                _disposed = true;
             }
             return null;
         }
@@ -170,7 +151,6 @@ namespace ChainsAPM.Communication.Tcp
         {
             try
             {
-
                 Dispose();
             }
             catch (Exception)
@@ -180,55 +160,46 @@ namespace ChainsAPM.Communication.Tcp
             return true;
         }
 
-
-
         public void Dispose()
         {
-            if (!disposed)
+            if (!_disposed)
             {
-                m_Client.Close();
+                _client.Close();
             }
 
-            disposed = true;
+            _disposed = true;
         }
 
-
         #region ITransport<byte[]> Members
-
-
         public bool Connected
         {
             get
             {
                 try
                 {
-                    return m_Client.Client.Connected;
+                    return _client.Client.Connected;
                 }
                 catch (Exception)
                 {
-
                     return false;
                 }
-
             }
         }
 
         #endregion
 
         #region ITransport<byte[]> Members
-
         public bool HasData
         {
             get
             {
-                lock (m_QueueLock)
+                lock (_queueLock)
                 {
-                    return m_InboundQueue.Count > 0;
+                    return _inboundQueue.Count > 0;
                 }
             }
 
         }
-
         #endregion
     }
 }
